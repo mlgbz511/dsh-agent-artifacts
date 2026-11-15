@@ -84,6 +84,22 @@ test('workspace items merge, sensitive excluded, session titles set', async () =
   assert.ok(item.size > 0);
 });
 
+test('items returns before git and marks the version cells pending', async () => {
+  const response = await call({ operation: 'items', scope: 'session', sessionId: 's1' });
+  const body = await response.json();
+  assert.equal(body.ok, true);
+  assert.equal(body.data.items[0].git, undefined);
+  assert.equal(body.data.items[0].gitPending, true);
+});
+
+test('git batch resolves the requested paths and ignores relative paths', async () => {
+  const response = await call({ operation: 'git', paths: [textFile, 'relative.md', path.join(cwd, '.env')] });
+  const body = await response.json();
+  assert.equal(body.ok, true);
+  assert.ok(Object.prototype.hasOwnProperty.call(body.data.git, textFile));
+  assert.equal(Object.prototype.hasOwnProperty.call(body.data.git, 'relative.md'), false);
+});
+
 test('session scope only reads that session', async () => {
   const response = await call({ operation: 'items', scope: 'session', sessionId: 's1' });
   const body = await response.json();

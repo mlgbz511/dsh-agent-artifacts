@@ -100,6 +100,8 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
         scanGroup: '工作区文件',
         hideCode: '隐藏代码/配置',
         requestTimeout: '加载超时，请点重试',
+        gitLoading: '正在读取 Git 版本',
+        gitRetry: 'Git 读取失败，点击重试',
         locationLabel: '入口位置',
         locRail: '左侧栏',
         locGuide: '右侧边栏',
@@ -410,6 +412,8 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
         scanGroup: 'Workspace files',
         hideCode: 'Hide code/config',
         requestTimeout: 'Loading timed out; retry',
+        gitLoading: 'Reading Git version',
+        gitRetry: 'Git lookup failed; click to retry',
         locationLabel: 'Entry locations',
         locRail: 'Left sidebar',
         locGuide: 'Right sidebar',
@@ -994,6 +998,12 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       '.dsa-cellText{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}',
       '.dsa-muted{color:var(--dsw-alias-label-tertiary);font-size:var(--dsa-fs-xs)}',
       '.dsa-version{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:5px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;font-weight:700;line-height:1;white-space:nowrap;background:#182433;border:1px solid #35557a;color:#9fc3ff}',
+      '.dsa-versionLoading{width:42px;justify-content:center;background:#22262c;border-color:#3a4048}',
+      '.dsa-versionSpinner{width:10px;height:10px;border:1.5px solid #55555f;border-top-color:#c7c7cf;border-radius:50%;animation:dsa-spin .7s linear infinite}',
+      '.dsa-versionRetry{display:inline-flex;align-items:center;justify-content:center;height:22px;min-width:30px;padding:0 7px;border-radius:5px;background:#2b1d1d;border:1px solid #5a3a3a;color:#b39191;font:700 11px ui-monospace,monospace;cursor:pointer}',
+      '.dsa-versionRetry:hover{background:#3a2525;color:#e0b0b0}',
+      '.dsa-versionRetry:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}',
+      '@keyframes dsa-spin{to{transform:rotate(360deg)}}',
       '.dsa-src{font-size:10px;padding:1px 5px;border-radius:4px;border:1px solid var(--dsw-alias-border-l1);color:var(--dsw-alias-label-secondary);white-space:nowrap}',
       '.dsa-listRows{display:flex;flex-direction:column;padding:2px 0}',
       '.dsa-listRow{display:flex;align-items:center;gap:9px;min-height:32px;padding:4px 8px;border:0;border-radius:6px;background:transparent;color:inherit;font:inherit;text-align:left;width:100%;cursor:pointer}',
@@ -1614,14 +1624,42 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       });
     }
 
+    const INDEX_CACHE_MAX = 12;
+    const INDEX_CACHE = new Map();
+    function indexCacheKey({ mode, sessionId, workspace, query, hideCode, scan, policy }) {
+      return JSON.stringify([mode, sessionId, workspace, query, hideCode === true, scan === true, policy]);
+    }
+    function indexCacheGet(key) {
+      const value = INDEX_CACHE.get(key);
+      if (!value) return undefined;
+      INDEX_CACHE.delete(key);
+      INDEX_CACHE.set(key, value);
+      return value;
+    }
+    function indexCacheSet(key, value) {
+      INDEX_CACHE.delete(key);
+      INDEX_CACHE.set(key, value);
+      while (INDEX_CACHE.size > INDEX_CACHE_MAX) INDEX_CACHE.delete(INDEX_CACHE.keys().next().value);
+    }
+
     function useArtifacts({ mode, sessionId, workspace, query, hideCode, scan, policy }) {
-      const [state, setState] = useState({ items: [], total: 0, facets: {}, meta: { sessions: [], workspaces: [] }, hasMore: false, loading: true, error: null });
+      const cacheKey = indexCacheKey({ mode, sessionId, workspace, query, hideCode, scan, policy });
+      const [state, setState] = useState(() => {
+        const cached = indexCacheGet(cacheKey);
+        return cached ? { ...cached, loading: false, error: null } : { items: [], total: 0, facets: {}, meta: { sessions: [], workspaces: [] }, hasMore: false, loading: true, error: null };
+      });
       const [reloadToken, setReloadToken] = useState(0);
       const requestRef = useRef(0);
       const stateRef = useRef(null);
+      const gitRequested = useRef(new Set());
       stateRef.current = state;
 
       useEffect(() => {
+        const cached = indexCacheGet(cacheKey);
+        if (cached) {
+          setState({ ...cached, loading: false, error: null });
+          return;
+        }
         const controller = new AbortController();
         const ticket = ++requestRef.current;
         setState((current) => ({ ...current, loading: true, error: null }));
@@ -1636,7 +1674,46 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
           setState((current) => ({ ...current, loading: false, error: String(error.message || error) }));
         });
         return () => controller.abort();
-      }, [mode, sessionId, workspace, query, hideCode, scan, policy, reloadToken]);
+      }, [cacheKey, reloadToken]);
+
+      useEffect(() => {
+        if (!state.loading && !state.error) indexCacheSet(cacheKey, state);
+      }, [cacheKey, state]);
+
+      useEffect(() => {
+        gitRequested.current = new Set();
+      }, [cacheKey]);
+
+      useEffect(() => {
+        const pending = state.items
+          .filter((item) => item.gitPending && !gitRequested.current.has(item.path))
+          .map((item) => item.path);
+        if (pending.length === 0) return undefined;
+        const controller = new AbortController();
+        for (const value of pending) gitRequested.current.add(value);
+        request('git', { paths: pending }, controller.signal, 20000).then((data) => {
+          if (controller.signal.aborted) return;
+          const git = data && data.git ? data.git : {};
+          setState((current) => ({
+            ...current,
+            items: current.items.map((item) => {
+              if (!pending.includes(item.path)) return item;
+              return Object.prototype.hasOwnProperty.call(git, item.path)
+                ? { ...item, git: git[item.path], gitPending: false, gitError: false }
+                : { ...item, gitPending: false, gitError: true };
+            }),
+          }));
+        }).catch(() => {
+          if (controller.signal.aborted) return;
+          setState((current) => ({
+            ...current,
+            items: current.items.map((item) => pending.includes(item.path)
+              ? { ...item, gitPending: false, gitError: true }
+              : item),
+          }));
+        });
+        return () => controller.abort();
+      }, [cacheKey, state.items]);
 
       const loadMore = useCallback(() => {
         const current = stateRef.current;
@@ -1654,11 +1731,22 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
         }).catch(() => setState((inner) => ({ ...inner, loading: false })));
       }, [mode, sessionId, workspace, query, hideCode, scan, policy]);
 
-      const reload = useCallback(() => setReloadToken((value) => value + 1), []);
-      const refresh = useCallback(() => {
-        request('refresh', {}).catch(() => {}).then(() => setReloadToken((value) => value + 1));
+      const reload = useCallback(() => {
+        INDEX_CACHE.delete(cacheKey);
+        setReloadToken((value) => value + 1);
+      }, [cacheKey]);
+      const retryGit = useCallback((target) => {
+        gitRequested.current.delete(target);
+        setState((current) => ({
+          ...current,
+          items: current.items.map((item) => item.path === target ? { ...item, gitPending: true, gitError: false } : item),
+        }));
       }, []);
-      return { ...state, loadMore, reload, refresh };
+      const refresh = useCallback(() => {
+        INDEX_CACHE.delete(cacheKey);
+        request('refresh', {}).catch(() => {}).then(() => setReloadToken((value) => value + 1));
+      }, [cacheKey]);
+      return { ...state, loadMore, reload, refresh, retryGit };
     }
 
     function Toast({ message }) {
@@ -2338,6 +2426,17 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
           }
           if (id === 'kind') return h('td', { key: id }, typeTag(item));
           if (id === 'version') {
+            if (item.gitPending) {
+              return h('td', { key: id }, h('span', {
+                className: 'dsa-version dsa-versionLoading', title: t().gitLoading, 'aria-label': t().gitLoading,
+              }, h('span', { className: 'dsa-versionSpinner' })));
+            }
+            if (item.gitError && !item.git) {
+              return h('td', { key: id }, h('button', {
+                className: 'dsa-versionRetry', type: 'button', title: t().gitRetry,
+                onClick: () => data.retryGit(item.path),
+              }, '—'));
+            }
             const git = item.git;
             if (!git) {
               const local = item.occurrences || 1;
@@ -2577,7 +2676,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       });
     }
 
-    const PLUGIN_VERSION = '2.15.3';
+    const PLUGIN_VERSION = '2.16.0';
     const TAB_LABELS = { entry: 'tabEntry', content: 'tabContent', filetypes: 'tabFileTypes', display: 'tabDisplay', about: 'tabAbout' };
 
     function PrefSwitch({ label, hint, checked, onChange }) {

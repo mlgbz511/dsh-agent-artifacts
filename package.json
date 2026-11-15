@@ -1,6 +1,6 @@
 {
   "name": "dsh-agent-artifacts",
-  "version": "2.15.3",
+  "version": "2.16.0",
   "type": "module",
   "description": "Agent artifact workspace for DeepSeek Harness: purpose tags, Git revisions, workspace scan, reader previews, and pointer/context-menu interactions.",
   "exports": {

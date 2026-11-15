@@ -16,6 +16,8 @@ const ENDPOINT = '/api/dsh-agent-artifacts';
 const CACHE_TTL_MS = 15_000;
 const MAX_SESSIONS = 40;
 const MAX_ITEMS = 400;
+const MAX_GIT_PATHS = 100;
+const GIT_CONCURRENCY = 6;
 const PREVIEW_BYTES = 200 * 1024;
 const IMAGE_BYTES = 5 * 1024 * 1024;
 const MAX_BODY = 64 * 1024;
@@ -290,14 +292,13 @@ async function listItems(sessionQuery, payload) {
   const page = sorted.slice(offset, offset + limit);
 
   const stats = await Promise.all(page.map((artifact) => statOf(artifact.path)));
-  const gits = await Promise.all(page.map((artifact) => gitInfo(artifact.path).catch(() => null)));
   const items = page.map((artifact, index) => {
     const stat = stats[index];
     const { history, sessions, ...rest } = artifact;
     return {
       ...rest,
       category: normalizeKind(artifact.category) || UNTAGGED,
-      git: gits[index],
+      gitPending: true,
       sessionId: artifact.sessionId,
       id: encodeId(scope === 'session' ? String(artifact.sessionId || payload.sessionId || '') : '', artifact.path),
       exists: stat.exists && !stat.isDirectory,
@@ -320,6 +321,30 @@ async function listItems(sessionQuery, payload) {
     },
     meta: { ...built.meta, version: HOST_VERSION, policy },
   };
+}
+
+async function readGitBatch(payload) {
+  const requested = Array.isArray(payload.paths) ? payload.paths : [];
+  const paths = [];
+  const seen = new Set();
+  for (const raw of requested) {
+    if (typeof raw !== 'string' || !isAbsolutePathLike(raw) || isSensitive(raw)) continue;
+    const key = path.resolve(raw).toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    paths.push(raw);
+    if (paths.length >= MAX_GIT_PATHS) break;
+  }
+  const git = {};
+  let cursor = 0;
+  const worker = async () => {
+    while (cursor < paths.length) {
+      const value = paths[cursor++];
+      git[value] = await gitInfo(value).catch(() => null);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(GIT_CONCURRENCY, paths.length) }, worker));
+  return { git };
 }
 
 async function readDetail(sessionQuery, payload) {
@@ -501,6 +526,9 @@ function registerEndpoint(scope) {
             const result = await listItems(sessionQuery, payload);
             return result.error ?? ok(result);
           }
+          case 'git': {
+            return ok(await readGitBatch(payload));
+          }
           case 'detail': {
             const result = await readDetail(sessionQuery, payload);
             return result.error ?? ok(result);
@@ -537,6 +565,7 @@ function registerEndpoint(scope) {
           }
           case 'refresh':
             cache.clear();
+            scanCache.clear();
             return ok({ cleared: true });
           default:
             return fail('E_BAD_OPERATION', '未知操作');
