@@ -66,6 +66,7 @@ npm test
 ```bash
 node --check client.js
 node --check index.js
+npm run verify
 npm test
 npm pack --dry-run
 ```
