@@ -21,3 +21,10 @@ test('the control bar is sticky and icon buttons expose labels', () => {
   assert.ok(!source.includes("className: 'dsa-viewBtn'"), 'text view buttons are gone');
   assert.ok(!source.includes("className: 'dsa-groupByBtn'"), 'text group buttons are gone');
 });
+
+
+test('sticky group headers stay opaque and clear of table column headers', () => {
+  assert.ok(source.includes('.dsa-groupToggle{width:100%;border:0;background:var(--dsw-alias-bg-base);color:inherit;font:inherit;height:36px;'));
+  assert.ok(source.includes('.dsa-dtable th{position:sticky;top:36px;'));
+  assert.ok(source.includes('.dsa-group{position:sticky;top:0;z-index:2;'));
+});

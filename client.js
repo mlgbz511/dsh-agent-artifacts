@@ -759,7 +759,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       '.dsa-button[disabled],.dsa-iconButton[disabled]{opacity:.5;cursor:default}',
       '.dsa-list{flex:1 1 auto;min-height:0;overflow:auto;padding:0 8px 24px}',
       '.dsa-groupBlock{display:block}',
-      '.dsa-group{position:sticky;top:0;z-index:1;display:flex;align-items:baseline;gap:8px;padding:10px 8px 6px;background:var(--dsw-alias-bg-base);font-size:var(--dsa-fs-sm);font-weight:600;color:var(--dsw-alias-label-secondary)}',
+      '.dsa-group{position:sticky;top:0;z-index:2;display:flex;align-items:baseline;gap:8px;padding:10px 8px 6px;background:var(--dsw-alias-bg-base);font-size:var(--dsa-fs-sm);font-weight:600;color:var(--dsw-alias-label-secondary)}',
       '.dsa-groupTitle{flex:none;max-width:62%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
       '.dsa-groupHint{flex:1 1 auto;min-width:0;font-weight:400;font-size:var(--dsa-fs-xs);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}',
       '.dsa-groupCount{flex:none;font-weight:400;font-size:var(--dsa-fs-xs)}',
@@ -944,7 +944,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       '.dsa-srcOther{color:var(--dsw-alias-label-secondary);border-color:var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2)}',
       '.dsa-srcScan{color:var(--dsw-alias-state-success-primary,#8fd6a0);border-color:color-mix(in srgb, var(--dsw-alias-state-success-primary,#8fd6a0) 45%, transparent);background:color-mix(in srgb, var(--dsw-alias-state-success-primary,#8fd6a0) 12%, transparent)}',
       '.dsa-dtable{width:100%;border-collapse:collapse;table-layout:fixed;font-size:var(--dsa-fs-sm)}',
-      '.dsa-dtable th{position:sticky;top:34px;z-index:1;text-align:left;padding:6px 8px;border-bottom:1px solid var(--dsw-alias-border-l1);font-size:var(--dsa-fs-xs);font-weight:600;color:var(--dsw-alias-label-tertiary);background:var(--dsw-alias-bg-base);cursor:pointer;white-space:nowrap}',
+      '.dsa-dtable th{position:sticky;top:36px;z-index:1;text-align:left;padding:6px 8px;border-bottom:1px solid var(--dsw-alias-border-l1);font-size:var(--dsa-fs-xs);font-weight:600;color:var(--dsw-alias-label-tertiary);background:var(--dsw-alias-bg-base);cursor:pointer;white-space:nowrap}',
       '.dsa-dtable th[aria-sort="ascending"],.dsa-dtable th[aria-sort="descending"]{color:var(--dsw-alias-label-secondary)}',
       '.dsa-dtable td{padding:9px 8px;border-bottom:1px solid var(--dsw-alias-border-l1);vertical-align:middle;overflow:hidden}',
       '.dsa-list[data-density="comfortable"] .dsa-listRow{min-height:36px;padding:7px 8px}',
@@ -955,8 +955,8 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       '.dsa-groupByBtn{border:0;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:10.5px;padding:4px 9px;border-radius:5px;cursor:pointer}',
       '.dsa-groupByBtn[aria-pressed="true"]{background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-layer-1);font-weight:650}',
       '.dsa-groupIcon{display:inline-flex;align-items:center;justify-content:center;margin-right:2px}',
-      '.dsa-groupToggle{width:100%;border:0;background:transparent;color:inherit;font:inherit;padding:10px 8px 6px;min-height:36px;cursor:pointer;text-align:left;line-height:1.4}',
-      '.dsa-groupToggle[aria-expanded="false"]{padding:10px 8px 6px;min-height:36px}',
+      '.dsa-groupToggle{width:100%;border:0;background:var(--dsw-alias-bg-base);color:inherit;font:inherit;height:36px;padding:0 8px;align-items:center;cursor:pointer;text-align:left;line-height:1.4}',
+      '.dsa-groupToggle[aria-expanded="false"]{height:36px;padding:0 8px}',
       '.dsa-groupToggle:hover{background:var(--dsw-alias-bg-layer-1)}',
       '.dsa-groupChevron{font-size:11px;color:var(--dsw-alias-label-tertiary);width:10px;flex:none}',
       '.dsa-kiconMaterial svg{display:block;width:100%;height:100%}',
@@ -2559,7 +2559,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       });
     }
 
-    const PLUGIN_VERSION = '2.15.1';
+    const PLUGIN_VERSION = '2.15.2';
     const TAB_LABELS = { entry: 'tabEntry', content: 'tabContent', filetypes: 'tabFileTypes', display: 'tabDisplay', about: 'tabAbout' };
 
     function PrefSwitch({ label, hint, checked, onChange }) {
