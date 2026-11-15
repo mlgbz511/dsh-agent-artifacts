@@ -940,8 +940,8 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       '.dsa-groupByBtn{border:0;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:10.5px;padding:4px 9px;border-radius:5px;cursor:pointer}',
       '.dsa-groupByBtn[aria-pressed="true"]{background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-layer-1);font-weight:650}',
       '.dsa-groupIcon{display:inline-flex;align-items:center;justify-content:center;margin-right:2px}',
-      '.dsa-groupToggle{width:100%;border:0;background:transparent;color:inherit;font:inherit;padding:7px 8px 6px;cursor:pointer;text-align:left;line-height:1.35}',
-      '.dsa-groupToggle[aria-expanded="false"]{padding:3px 8px;min-height:24px}',
+      '.dsa-groupToggle{width:100%;border:0;background:transparent;color:inherit;font:inherit;padding:10px 8px 6px;min-height:36px;cursor:pointer;text-align:left;line-height:1.4}',
+      '.dsa-groupToggle[aria-expanded="false"]{padding:10px 8px 6px;min-height:36px}',
       '.dsa-groupToggle:hover{background:var(--dsw-alias-bg-layer-1)}',
       '.dsa-groupChevron{font-size:11px;color:var(--dsw-alias-label-tertiary);width:10px;flex:none}',
       '.dsa-kiconMaterial svg{display:block;width:100%;height:100%}',
@@ -2532,7 +2532,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       });
     }
 
-    const PLUGIN_VERSION = '2.14.2';
+    const PLUGIN_VERSION = '2.14.3';
     const TAB_LABELS = { entry: 'tabEntry', content: 'tabContent', filetypes: 'tabFileTypes', display: 'tabDisplay', about: 'tabAbout' };
 
     function PrefSwitch({ label, hint, checked, onChange }) {
