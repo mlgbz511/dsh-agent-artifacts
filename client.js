@@ -99,6 +99,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
         untitled: '未命名会话',
         scanGroup: '工作区文件',
         hideCode: '隐藏代码/配置',
+        requestTimeout: '加载超时，请点重试',
         locationLabel: '入口位置',
         locRail: '左侧栏',
         locGuide: '右侧边栏',
@@ -408,6 +409,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
         untitled: 'Untitled Session',
         scanGroup: 'Workspace files',
         hideCode: 'Hide code/config',
+        requestTimeout: 'Loading timed out; retry',
         locationLabel: 'Entry locations',
         locRail: 'Left sidebar',
         locGuide: 'Right sidebar',
@@ -655,20 +657,36 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       return template.replace(/\{(\w+)\}/g, (_, key) => (values[key] === undefined ? '' : String(values[key])));
     }
 
-    async function request(operation, payload, signal) {
-      const response = await fetch(ENDPOINT, {
-        method: 'POST',
-        signal,
-        cache: 'no-store',
-        headers: { 'content-type': 'application/json', 'x-dsh-agent-artifacts': '1' },
-        body: JSON.stringify({ operation, ...payload }),
-      });
-      const body = await response.json().catch(() => null);
-      if (!response.ok || !body || body.ok === false) {
-        const message = body && body.error ? body.error.message : 'HTTP ' + response.status;
-        throw new Error(message);
+    async function request(operation, payload, signal, timeoutMs = 12000) {
+      const controller = new AbortController();
+      let timedOut = false;
+      const timer = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
+      const forwardAbort = () => controller.abort();
+      if (signal) {
+        if (signal.aborted) controller.abort();
+        else signal.addEventListener('abort', forwardAbort, { once: true });
       }
-      return body.data;
+      try {
+        const response = await fetch(ENDPOINT, {
+          method: 'POST',
+          signal: controller.signal,
+          cache: 'no-store',
+          headers: { 'content-type': 'application/json', 'x-dsh-agent-artifacts': '1' },
+          body: JSON.stringify({ operation, ...payload }),
+        });
+        const body = await response.json().catch(() => null);
+        if (!response.ok || !body || body.ok === false) {
+          const message = body && body.error ? body.error.message : 'HTTP ' + response.status;
+          throw new Error(message);
+        }
+        return body.data;
+      } catch (error) {
+        if (timedOut) throw new Error(t().requestTimeout);
+        throw error;
+      } finally {
+        clearTimeout(timer);
+        if (signal) signal.removeEventListener('abort', forwardAbort);
+      }
     }
 
     function formatBytes(bytes) {
@@ -2559,7 +2577,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       });
     }
 
-    const PLUGIN_VERSION = '2.15.2';
+    const PLUGIN_VERSION = '2.15.3';
     const TAB_LABELS = { entry: 'tabEntry', content: 'tabContent', filetypes: 'tabFileTypes', display: 'tabDisplay', about: 'tabAbout' };
 
     function PrefSwitch({ label, hint, checked, onChange }) {
