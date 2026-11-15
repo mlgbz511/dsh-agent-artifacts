@@ -1,6 +1,6 @@
 {
   "name": "dsh-agent-artifacts",
-  "version": "2.13.1",
+  "version": "2.14.0",
   "type": "module",
   "description": "Agent artifact workspace for DeepSeek Harness: purpose tags, Git revisions, workspace scan, reader previews, and pointer/context-menu interactions.",
   "exports": {
@@ -21,7 +21,7 @@
     "THIRD-PARTY-NOTICES.md"
   ],
   "scripts": {
-    "test": "node test/collect.test.mjs && node test/scan.test.mjs && node test/host-route.test.mjs && node test/client-register.test.mjs && node test/reader.test.mjs && node test/kinds.test.mjs && node test/file-icons.test.mjs && node test/settings.test.mjs && node test/type-groups.test.mjs && node test/table-columns.test.mjs && node test/workspace-scope.test.mjs && node test/path-rebase.test.mjs && node test/provenance.test.mjs && node test/git-history.test.mjs && node test/interaction.test.mjs"
+    "test": "node test/collect.test.mjs && node test/scan.test.mjs && node test/host-route.test.mjs && node test/client-register.test.mjs && node test/reader.test.mjs && node test/kinds.test.mjs && node test/file-icons.test.mjs && node test/settings.test.mjs && node test/type-groups.test.mjs && node test/table-columns.test.mjs && node test/workspace-scope.test.mjs && node test/path-rebase.test.mjs && node test/provenance.test.mjs && node test/git-history.test.mjs && node test/interaction.test.mjs && node test/type-view.test.mjs"
   },
   "dsh": {
     "bundle": {

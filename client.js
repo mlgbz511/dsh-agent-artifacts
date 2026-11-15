@@ -154,6 +154,24 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
         tabIcons: '图标映射',
         tabMapping: '映射表',
         tabFileTypes: '文件类型',
+        groupByLabel: '分组方式',
+        groupByPurpose: '工件类型',
+        groupByFile: '文件类型',
+        groupBySession: '会话',
+        kindIcon: '改图标',
+        kindNew: '新建工件类型',
+        kindEdit: '编辑类型',
+        kindDelete: '删除类型',
+        kindDeleteConfirm: '删除后相关标签将回到未标注，继续？',
+        kindLimit: '最多 20 个自定义工件类型',
+        kindNameRequired: '类型名称不能为空',
+        kindResetIcon: '恢复默认图标',
+        kindIconTitle: '选择工件类型图标',
+        kindTone: '色调',
+        kindSaved: '工件类型已保存',
+        kindDeleted: '工件类型已删除',
+        kindCustomTag: '自定义',
+        groupByHint: '选择列表分组方式；默认按工件类型。',
         ftHint: '图标绑定的是「文件类型组」：一组可含一个或多个扩展名与特殊文件名。扩展名全组唯一，新增会自动从旧组移出。',
         ftGroups: '文件类型组',
         ftKinds: '工件类型',
@@ -443,6 +461,24 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
         tabIcons: 'Icon mapping',
         tabMapping: 'Mapping',
         tabFileTypes: 'File types',
+        groupByLabel: 'Group by',
+        groupByPurpose: 'Artifact type',
+        groupByFile: 'File type',
+        groupBySession: 'Session',
+        kindIcon: 'Icon',
+        kindNew: 'New artifact type',
+        kindEdit: 'Edit type',
+        kindDelete: 'Delete type',
+        kindDeleteConfirm: 'Tags using this type will return to untagged. Continue?',
+        kindLimit: 'Up to 20 custom artifact types',
+        kindNameRequired: 'Type name is required',
+        kindResetIcon: 'Reset icon',
+        kindIconTitle: 'Choose artifact type icon',
+        kindTone: 'Tone',
+        kindSaved: 'Artifact type saved',
+        kindDeleted: 'Artifact type deleted',
+        kindCustomTag: 'custom',
+        groupByHint: 'Choose how the list is grouped. Artifact type is the default.',
         ftHint: 'Icons bind to file type groups. A group holds one or more extensions plus special filenames. An extension belongs to one group; adding it elsewhere moves it.',
         ftGroups: 'Type groups',
         ftKinds: 'Artifact kinds',
@@ -898,6 +934,13 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       '.dsa-dtable td{padding:6px 8px;border-bottom:1px solid var(--dsw-alias-border-l1);vertical-align:middle;overflow:hidden}',
       '.dsa-dtable tbody tr{cursor:pointer}',
       '.dsa-dtable tbody tr:hover{background:var(--dsw-alias-bg-layer-1)}',
+      '.dsa-groupBy{display:flex;gap:2px;margin:0 12px 8px;padding:2px;width:max-content;border:1px solid var(--dsw-alias-border-l2);border-radius:7px;background:var(--dsw-alias-bg-layer-1)}',
+      '.dsa-groupByBtn{border:0;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:10.5px;padding:4px 9px;border-radius:5px;cursor:pointer}',
+      '.dsa-groupByBtn[aria-pressed="true"]{background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-layer-1);font-weight:650}',
+      '.dsa-groupIcon{display:inline-flex;align-items:center;justify-content:center;margin-right:2px}',
+      '.dsa-kiconMaterial svg{display:block;width:100%;height:100%}',
+      '.dsa-toneDot{width:20px;height:20px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0}',
+      '.dsa-toneDot.on{border-color:var(--dsw-alias-label-primary);box-shadow:0 0 0 2px var(--dsw-alias-bg-layer-1)}',
       '.dsa-selected{background:var(--dsw-alias-bg-layer-2)!important;box-shadow:inset 2px 0 0 var(--dsw-alias-brand-primary)}',
       '.dsa-listRow.dsa-selected,.dsa-tile.dsa-selected,.dsa-iconCell.dsa-selected,.dsa-contentRow.dsa-selected{border-color:var(--dsw-alias-brand-primary)}',
       '.dsa-menu{position:fixed;z-index:90;min-width:190px;padding:4px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-2);box-shadow:0 16px 40px rgba(0,0,0,.45)}',
@@ -1186,9 +1229,19 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
     };
 
     function KindIcon({ kind, size = 18 }) {
-      const tone = KIND_TONE[kind] || KIND_TONE.other;
+      const customKind = (prefs.artifactKinds || []).find((entry) => entry.id === kind);
+      const tone = (customKind && customKind.tone) || KIND_TONE[kind] || KIND_TONE.other;
       const glyph = Math.max(10, Math.round(size * 0.66));
       const radius = Math.max(3, Math.round(size * 0.22));
+      const iconId = (prefs.kindIcons && prefs.kindIcons[kind]) || (customKind && customKind.icon);
+      const material = iconId && FILE_ICONS[iconId];
+      if (material) {
+        return h('span', {
+          className: 'dsa-kicon dsa-kiconMaterial', 'aria-hidden': 'true',
+          style: { width: size, height: size, background: tone, borderRadius: radius, padding: Math.max(2, Math.round(size * 0.18)) },
+          dangerouslySetInnerHTML: { __html: material },
+        });
+      }
       const paths = KIND_PATHS[kind] || KIND_PATHS.other;
       return h('span', {
         className: 'dsa-kicon', 'aria-hidden': 'true',
@@ -1613,7 +1666,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
                 setArtifactTag(item.path, event.target.value);
                 setState((current) => ({ ...current, item: current.item ? { ...current.item, category: event.target.value } : current.item }));
               },
-            }, [...KINDS.map((kind) => h('option', { key: kind.id, value: kind.id }, t()[kind.labelKey]))])),
+            }, [...kindDefinitions().map((kind) => h('option', { key: kind.id, value: kind.id }, kind.custom ? kind.label : t()[kind.labelKey]))])),
             h('dt', null, t().type), h('dd', null, item.type),
             h('dt', null, t().size), h('dd', null, formatBytes(item.size)),
             h('dt', null, t().modified), h('dd', null, formatTime(item.mtime)),
@@ -1662,7 +1715,42 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       return '#' + String(sessionId).replace(/^session-?/, '').slice(-8);
     }
 
-    function groupArtifacts(items, sessions, mode, scan) {
+    function groupArtifacts(items, sessions, mode, scan, by) {
+      if (by === 'purpose') {
+        const definitions = kindDefinitions();
+        const order = definitions.filter((kind) => kind.id !== 'untagged').map((kind) => kind.id);
+        order.push('untagged');
+        return bucketItems(items, (item) => item.category || 'untagged', order).map(({ key, items: groupItems }) => ({
+          key: 'purpose:' + key,
+          title: artifactKindLabel(key),
+          kind: key,
+          order: order.indexOf(key),
+          items: groupItems,
+        }));
+      }
+      if (by === 'file') {
+        const typeGroups = prefs.fileTypes || defaultTypeGroups(language);
+        const order = typeGroups.map((group) => group.id);
+        const resolved = new Map();
+        for (const item of items) {
+          const match = resolveTypeGroup(item.path, typeGroups);
+          resolved.set(item.id, match.group || null);
+        }
+        const buckets = bucketItems(items, (item) => {
+          const group = resolved.get(item.id);
+          return group ? group.id : '__other';
+        }, order);
+        return buckets.map(({ key, items: groupItems }) => {
+          const group = typeGroups.find((entry) => entry.id === key);
+          return {
+            key: 'file:' + key,
+            title: group ? group.label : t().other,
+            fileType: group || null,
+            order: order.indexOf(key),
+            items: groupItems,
+          };
+        });
+      }
       if (mode === 'session') {
         const own = [];
         const scanned = [];
@@ -2045,8 +2133,8 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       );
       const outsideCount = visible.length - scoped.length;
       const groups = useMemo(
-        () => groupArtifacts(scoped, meta.sessions, mode, meta.scan),
-        [scoped, meta.sessions, mode, meta.scan],
+        () => groupArtifacts(scoped, meta.sessions, mode, meta.scan, prefs.groupBy),
+        [scoped, meta.sessions, mode, meta.scan, prefs.groupBy],
       );
 
       const openItem = (item) => {
@@ -2160,14 +2248,15 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
               h('span', null, tag.group.label));
           }
           const id = item.category || 'untagged';
-          const definition = KINDS.find((kind) => kind.id === id) || KINDS[KINDS.length - 1];
-          const tone = KIND_TONE[id] || KIND_TONE.untagged;
+          const definition = kindDefinitionOf(id) || { id: 'untagged', labelKey: 'untaggedLabel', descriptionKey: 'kindDescUntagged' };
+          const custom = definition.custom === true;
+          const tone = (custom && definition.tone) || KIND_TONE[id] || KIND_TONE.untagged;
           return h('span', {
             className: 'dsa-purposeTag' + (id === 'untagged' ? ' dsa-purposeUntagged' : ''),
-            title: t()[definition.descriptionKey]
+            title: (custom ? definition.label : t()[definition.descriptionKey])
               + ((!prefs.artifactTags || !prefs.artifactTags[item.path]) && prefs.autoTags && prefs.autoTags[item.path] ? ' · ' + t().inferredTag : ''),
             style: id === 'untagged' ? undefined : { color: tone, borderColor: tone, background: tone + '1f' },
-          }, t()[definition.labelKey]);
+          }, custom ? definition.label : t()[definition.labelKey]);
         };
         const cell = (id, item) => {
           if (id === 'name') {
@@ -2344,6 +2433,11 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
                 className: 'dsa-colReset', type: 'button',
                 onClick: () => { commitColumns(defaultTableColumns()); setColumnMenu(false); },
               }, t().columnsReset)) : null)),
+        h('div', { className: 'dsa-groupBy', role: 'group', 'aria-label': t().groupByLabel },
+          [['purpose', t().groupByPurpose], ['file', t().groupByFile], ['session', t().groupBySession]].map(([id, label]) => h('button', {
+            key: id, type: 'button', className: 'dsa-groupByBtn', 'aria-pressed': prefs.groupBy === id,
+            onClick: () => setPref('groupBy', id),
+          }, label))),
         h('div', { className: 'dsa-list', role: 'list', 'data-compact': showPath ? 'false' : 'true', 'data-density': prefs.density === 'compact' ? 'compact' : 'comfortable' },
           data.error ? h('div', { className: 'dsa-error' },
             h('div', null, t().error + '：' + data.error),
@@ -2361,6 +2455,12 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
               }, t().scopeShowAll)) : null,
           groups.map((group) => h('section', { key: group.key, className: 'dsa-groupBlock', role: 'group' },
             h('div', { className: 'dsa-group' },
+              group.kind ? h('span', { className: 'dsa-groupIcon' }, h(KindIcon, { kind: group.kind, size: 18 })) : null,
+              group.fileType ? h('span', {
+                className: 'dsa-ficon dsa-groupIcon', 'aria-hidden': 'true',
+                dangerouslySetInnerHTML: { __html: FILE_ICONS[group.fileType.icon] || FILE_ICONS.document || '' },
+                style: { width: '18px', height: '18px' },
+              }) : null,
               h('span', { className: 'dsa-groupTitle', title: group.title }, group.title),
               group.hint ? h('span', { className: 'dsa-groupHint', title: group.hint }, group.hint) : null,
               h('span', { className: 'dsa-groupCount' }, String(group.items.length))),
@@ -2411,7 +2511,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       });
     }
 
-    const PLUGIN_VERSION = '2.13.1';
+    const PLUGIN_VERSION = '2.14.0';
     const TAB_LABELS = { entry: 'tabEntry', content: 'tabContent', filetypes: 'tabFileTypes', display: 'tabDisplay', about: 'tabAbout' };
 
     function PrefSwitch({ label, hint, checked, onChange }) {
@@ -2473,10 +2573,13 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
     function SettingsFileTypes() {
       const [, tick] = useState(0);
       useEffect(() => subscribePrefs(() => tick((value) => value + 1)), []);
-      const [view, setView] = useState('groups');
+      const [view, setView] = useState('kinds');
       const [query, setQuery] = useState('');
       const [editor, setEditor] = useState(null);
       const [iconDialog, setIconDialog] = useState(null);
+      const [kindEditor, setKindEditor] = useState(null);
+      const [kindIconDialog, setKindIconDialog] = useState(null);
+      const [kindIconQuery, setKindIconQuery] = useState('');
       const [iconQuery, setIconQuery] = useState('');
       const [notice, setNotice] = useState('');
       const groups = prefs.fileTypes || defaultTypeGroups(language);
@@ -2617,32 +2720,162 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
             h('span', { className: 'dsa-count' }, resolved.group ? resolved.group.label + ' · ' + resolved.source : t().iconsSourceFallback));
         })));
 
+      const kindDefs = () => kindDefinitions();
+      const kindIconNode = (kind, size) => h(KindIcon, { kind, size });
+      const customKind = (id) => (prefs.artifactKinds || []).find((kind) => kind.id === id) || null;
+      const openKindEditor = (id) => {
+        const existing = id ? customKind(id) : null;
+        setKindEditor(existing
+          ? { ...existing, isNew: false }
+          : { id: 'custom-' + Date.now().toString(36), label: '', icon: 'document', tone: KIND_TONE_PALETTE[0], custom: true, isNew: true });
+      };
+      const saveKindEditor = () => {
+        if (!kindEditor) return;
+        const label = kindEditor.label.trim().slice(0, 20);
+        if (label === '') { setNotice(t().kindNameRequired); return; }
+        const next = [...(prefs.artifactKinds || [])];
+        const target = { ...kindEditor, label, custom: true };
+        delete target.isNew;
+        const index = next.findIndex((kind) => kind.id === target.id);
+        if (index < 0) {
+          if (next.length >= MAX_ARTIFACT_KINDS) { setNotice(t().kindLimit); return; }
+          next.push(target);
+        } else {
+          next[index] = target;
+        }
+        setKindEditor(null);
+        setPref('artifactKinds', next);
+        setNotice(t().kindSaved);
+      };
+      const applyKindIcon = (id, icon) => {
+        setPref('kindIcons', { ...(prefs.kindIcons || {}), [id]: icon });
+        setKindIconDialog(null);
+        setNotice(t().kindSaved);
+      };
+      const resetKindIcon = (id) => {
+        const next = { ...(prefs.kindIcons || {}) };
+        delete next[id];
+        setPref('kindIcons', next);
+      };
+      const removeKind = (id) => {
+        if (typeof window !== 'undefined' && !window.confirm(t().kindDeleteConfirm)) return;
+        const tags = { ...(prefs.artifactTags || {}) };
+        for (const [path, tag] of Object.entries(tags)) if (tag === id) delete tags[path];
+        const auto = { ...(prefs.autoTags || {}) };
+        for (const [path, tag] of Object.entries(auto)) if (tag === id) delete auto[path];
+        const hidden = prefs.hiddenKinds.filter((entry) => entry !== id);
+        const icons = { ...(prefs.kindIcons || {}) };
+        delete icons[id];
+        setPref('artifactKinds', (prefs.artifactKinds || []).filter((kind) => kind.id !== id));
+        setPref('kindIcons', icons);
+        setPref('hiddenKinds', hidden);
+        setPref('artifactTags', tags);
+        setPref('autoTags', auto);
+        setNotice(t().kindDeleted);
+      };
       const renderKinds = () => {
-        const kindRow = (kind) => h('tr', { key: kind.id },
-          h('td', null, h('div', { className: 'dsa-kindCell' },
-            h(KindIcon, { kind: kind.id, size: 22 }),
-            h('span', { className: 'dsa-kindName' }, t()[kind.labelKey]))),
-          h('td', null, h(FileIcon, { path: KIND_SAMPLE[kind.id] || 'unknown.bin', kind: kind.id, size: 22 })),
-          h('td', { className: 'dsa-colRules' }, h('span', { className: 'dsa-kindDesc' }, t()[KIND_RULES[kind.id]])),
-          h('td', null, h('label', { className: 'dsa-switch' },
-            h('input', {
-              type: 'checkbox', checked: !hidden.includes(kind.id), 'aria-label': t()[kind.labelKey],
-              onChange: (event) => setKindVisible(kind.id, event.target.checked),
-            }),
-            h('i', { 'aria-hidden': 'true' }))));
+        const hiddenIds = new Set(prefs.hiddenKinds);
+        const kindRow = (kind) => {
+          const custom = kind.custom === true;
+          const description = custom ? t().kindCustomTag : (KIND_RULES[kind.id] ? t()[KIND_RULES[kind.id]] : t().kindDescOther);
+          return h('tr', { key: kind.id },
+            h('td', null, h('div', { className: 'dsa-kindCell' }, kindIconNode(kind.id, 22),
+              h('span', { className: 'dsa-kindName' }, kind.custom ? kind.label : t()[kind.labelKey]))),
+            h('td', null, h('span', { className: 'dsa-kindDesc' }, description)),
+            h('td', { className: 'dsa-colRules' }, h('span', { className: 'dsa-mono muted' }, kind.id)),
+            h('td', null, h('div', { className: 'dsa-rowActions' },
+              h('button', { className: 'dsa-button', type: 'button', onClick: () => { setKindIconDialog(kind.id); setKindIconQuery(''); } }, t().kindIcon),
+              custom ? h('button', { className: 'dsa-button', type: 'button', onClick: () => openKindEditor(kind.id) }, t().kindEdit) : null,
+              custom ? h('button', { className: 'dsa-button dsa-danger', type: 'button', onClick: () => removeKind(kind.id) }, t().kindDelete) : null,
+              (prefs.kindIcons && prefs.kindIcons[kind.id]) ? h('button', { className: 'dsa-button', type: 'button', onClick: () => resetKindIcon(kind.id) }, t().kindResetIcon) : null)),
+            h('td', null, h('label', { className: 'dsa-switch' },
+              h('input', {
+                type: 'checkbox', checked: !hiddenIds.has(kind.id), 'aria-label': kind.custom ? kind.label : t()[kind.labelKey],
+                onChange: (event) => setKindVisible(kind.id, event.target.checked),
+              }),
+              h('i', { 'aria-hidden': 'true' }))));
+        };
         return h('div', null,
           h('div', { className: 'dsa-mapScroll' },
-            h('table', { className: 'dsa-mapTable' },
+            h('table', { className: 'dsa-mapTable dsa-typeTable' },
               h('thead', null, h('tr', null,
                 h('th', { className: 'dsa-colKindCell' }, t().mapKindCol),
-                h('th', { className: 'dsa-colRepIcon' }, t().mapRepIcon),
                 h('th', { className: 'dsa-colRules' }, t().mapRules),
+                h('th', null, 'ID'),
+                h('th', { className: 'dsa-colTypeActions' }, t().ftActions),
                 h('th', { className: 'dsa-colSwitch' }, t().mapShow))),
-              h('tbody', null, KINDS.map(kindRow)))),
+              h('tbody', null, kindDefs().map(kindRow)))),
+          h('button', { className: 'dsa-button', type: 'button', style: { marginTop: '8px' }, onClick: () => openKindEditor(null) }, t().kindNew),
           h('p', { className: 'dsa-setHint' }, t().mapKindsFooter),
           h('div', { className: 'dsa-resetRow' },
-            h('span', { className: 'dsa-count' }, hidden.length === 0 ? t().typesAllVisible : `${t().typesHidden} ${hidden.length} / ${KINDS.length}`),
+            h('span', { className: 'dsa-count' }, hiddenIds.size === 0 ? t().typesAllVisible : `${t().typesHidden} ${hiddenIds.size} / ${kindDefs().length}`),
             h('button', { className: 'dsa-button', onClick: () => resetPrefs('types') }, t().settingsReset)));
+      };
+
+      const renderKindEditor = () => {
+        if (!kindEditor) return null;
+        const iconPreview = (id) => h('span', {
+          className: 'dsa-previewIcon', style: { width: '22px', height: '22px' },
+          dangerouslySetInnerHTML: { __html: FILE_ICONS[id] || FILE_ICONS.document || '' },
+        });
+        return h('div', { className: 'dsa-overlay', role: 'presentation', onClick: () => setKindEditor(null) },
+          h('div', { className: 'dsa-modal', role: 'dialog', 'aria-modal': 'true', style: { width: 'min(560px, 92vw)' }, onClick: (event) => event.stopPropagation() },
+            h('div', { className: 'dsa-modalHead' },
+              h(KindIcon, { kind: kindEditor.id, size: 30 }),
+              h('div', { style: { minWidth: 0 } },
+                h('h3', { className: 'dsa-modalTitle' }, kindEditor.isNew ? t().kindNew : t().kindEdit),
+                h('div', { className: 'dsa-modalPath' }, kindEditor.id))),
+            h('div', { className: 'dsa-modalBody' },
+              h('div', { className: 'dsa-field' },
+                h('label', null, t().ftName),
+                h('input', {
+                  className: 'dsa-input', maxLength: 20, value: kindEditor.label, placeholder: t().ftNamePlaceholder,
+                  'aria-label': t().ftName, onChange: (event) => setKindEditor((current) => ({ ...current, label: event.target.value })),
+                })),
+              h('div', { className: 'dsa-field' },
+                h('label', null, t().ftIconLabel),
+                h('div', { className: 'dsa-iconGrid', role: 'listbox', 'aria-label': t().ftIconLabel },
+                  Object.keys(FILE_ICONS).sort().map((id) => h('button', {
+                    key: id, type: 'button', role: 'option', title: id,
+                    className: 'dsa-iconCell', 'aria-pressed': kindEditor.icon === id,
+                    onClick: () => setKindEditor((current) => ({ ...current, icon: id })),
+                  }, iconPreview(id), h('span', null, id))))),
+              h('div', { className: 'dsa-field' },
+                h('label', null, t().kindTone),
+                h('div', { className: 'dsa-chips' }, KIND_TONE_PALETTE.map((tone) => h('button', {
+                  key: tone, type: 'button', 'aria-label': tone,
+                  className: 'dsa-toneDot' + (kindEditor.tone === tone ? ' on' : ''),
+                  style: { background: tone }, onClick: () => setKindEditor((current) => ({ ...current, tone })),
+                }))))),
+            h('div', { className: 'dsa-modalActions', style: { justifyContent: 'flex-end' } },
+              h('button', { className: 'dsa-button', type: 'button', onClick: () => setKindEditor(null) }, t().dialogCancel),
+              h('button', { className: 'dsa-button dsa-primary', type: 'button', onClick: saveKindEditor }, t().dialogSave))));
+      };
+
+      const renderKindIconDialog = () => {
+        if (!kindIconDialog) return null;
+        const kind = kindDefs().find((entry) => entry.id === kindIconDialog);
+        const choices = Object.keys(FILE_ICONS).sort().filter((id) => kindIconQuery.trim() === '' || id.includes(kindIconQuery.trim().toLowerCase()));
+        return h('div', { className: 'dsa-overlay', role: 'presentation', onClick: () => setKindIconDialog(null) },
+          h('div', { className: 'dsa-modal', role: 'dialog', 'aria-modal': 'true', style: { width: 'min(520px, 92vw)' }, onClick: (event) => event.stopPropagation() },
+            h('div', { className: 'dsa-modalHead' },
+              h(KindIcon, { kind: kindIconDialog, size: 30 }),
+              h('div', { style: { minWidth: 0 } },
+                h('h3', { className: 'dsa-modalTitle' }, t().kindIconTitle + (kind ? ' · ' + (kind.custom ? kind.label : t()[kind.labelKey]) : '')),
+                h('div', { className: 'dsa-modalPath' }, kindIconDialog))),
+            h('div', { className: 'dsa-modalBody' },
+              h('input', {
+                className: 'dsa-input', type: 'search', value: kindIconQuery, placeholder: t().iconsSearch,
+                'aria-label': t().iconsSearch, onChange: (event) => setKindIconQuery(event.target.value),
+              }),
+              h('div', { className: 'dsa-iconGrid', role: 'listbox', 'aria-label': t().iconsSearch },
+                choices.map((id) => h('button', {
+                  key: id, type: 'button', role: 'option', title: id,
+                  className: 'dsa-iconCell', 'aria-pressed': prefs.kindIcons && prefs.kindIcons[kindIconDialog] === id,
+                  onClick: () => applyKindIcon(kindIconDialog, id),
+                }, h('span', { className: 'dsa-previewIcon', 'aria-hidden': 'true', style: { width: '22px', height: '22px' }, dangerouslySetInnerHTML: { __html: FILE_ICONS[id] || '' } }), h('span', null, id))))),
+            h('div', { className: 'dsa-modalActions', style: { justifyContent: 'flex-end' } },
+              h('button', { className: 'dsa-button', type: 'button', onClick: () => setKindIconDialog(null) }, t().dialogCancel))));
       };
 
       const renderEditor = () => {
@@ -2722,14 +2955,24 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       return h('div', null,
         h('h3', { className: 'dsa-setTitle' }, t().tabFileTypes),
         h('p', { className: 'dsa-setHint' }, t().ftHint),
-        h('div', { className: 'dsa-mapSeg', role: 'group', 'aria-label': t().tabFileTypes },
+        h('div', { className: 'dsa-setRow dsa-prefRow' },
+          h('div', { className: 'dsa-kindText' }, h('span', { className: 'dsa-kindName' }, t().groupByLabel),
+            h('div', { className: 'dsa-setHint' }, t().groupByHint)),
+          h('div', { className: 'dsa-mapSeg', role: 'group', 'aria-label': t().groupByLabel },
+            [['purpose', t().groupByPurpose], ['file', t().groupByFile], ['session', t().groupBySession]].map(([id, label]) => h('button', {
+              key: id, type: 'button', className: 'dsa-mapSegBtn', 'aria-pressed': prefs.groupBy === id,
+              onClick: () => setPref('groupBy', id),
+            }, label)))),
+        h('div', { className: 'dsa-mapSeg', role: 'group', 'aria-label': t().tabFileTypes, style: { marginTop: '8px' } },
           [['groups', t().ftGroups], ['kinds', t().ftKinds]].map(([id, label]) => h('button', {
             key: id, type: 'button', className: 'dsa-mapSegBtn', 'aria-pressed': view === id,
             onClick: () => setView(id),
           }, label))),
         view === 'groups' ? renderGroups() : renderKinds(),
         renderEditor(),
-        renderIconDialog());
+        renderIconDialog(),
+        renderKindEditor(),
+        renderKindIconDialog());
     }
 
     function SettingsDisplay() {
@@ -2809,7 +3052,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
           h('dt', null, t().aboutPlugin), h('dd', null, PACKAGE_NAME),
           h('dt', null, t().aboutVersion), h('dd', null, PLUGIN_VERSION),
           h('dt', null, t().aboutEntrySummary), h('dd', null, entries.length > 0 ? entries.join(' · ') : t().noEntryWarning),
-          h('dt', null, t().aboutTypeSummary), h('dd', null, String(KINDS.length) + ' / ' + String(prefs.hiddenKinds.length) + ' ' + t().typesHidden),
+          h('dt', null, t().aboutTypeSummary), h('dd', null, String(kindDefinitions().length) + ' / ' + String(prefs.hiddenKinds.length) + ' ' + t().typesHidden),
           h('dt', null, t().aboutIconSource), h('dd', null, 'material-icon-theme 5.40.0 · MIT'),
           h('dt', null, t().aboutScope), h('dd', null, t().prefsScope)),
         h('div', { className: 'dsa-resetRow' },
@@ -2844,7 +3087,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
           h('dt', null, t().contentLabel), h('dd', null, prefs.scan ? t().scanToggle : '—'),
           h('dt', null, t().viewModeLabel), h('dd', null, t()[viewLabels[prefs.view]]),
           h('dt', null, t().fontSizeLabel), h('dd', null, t()[fontLabels[prefs.font]]),
-          h('dt', null, t().tabTypes), h('dd', null, String(KINDS.length - prefs.hiddenKinds.length) + ' / ' + String(KINDS.length)),
+          h('dt', null, t().tabTypes), h('dd', null, String(kindDefinitions().length - prefs.hiddenKinds.length) + ' / ' + String(kindDefinitions().length)),
           h('dt', null, t().tabFileTypes), h('dd', null, String((prefs.fileTypes || defaultTypeGroups(language)).length) + ' ' + t().ftGroups)));
     }
 
@@ -3013,6 +3256,67 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       tabs.guide = sorted;
     }
 
+    // #region kind-model
+    const BUILTIN_KIND_IDS = ['plan', 'walkthrough', 'change', 'diagram', 'evidence', 'preview', 'document', 'code', 'other'];
+    const GROUP_BYS = ['purpose', 'file', 'session'];
+    const MAX_ARTIFACT_KINDS = 20;
+    const KIND_TONE_PALETTE = ['#5b8def', '#3aa88f', '#d4803f', '#8a7be0', '#3f9e63', '#c99a3d', '#4a8fbd', '#7d6bd6', '#c06b8d', '#7a7a7a'];
+
+    function normalizeArtifactKinds(value) {
+      if (!Array.isArray(value)) return [];
+      const seen = new Set();
+      const result = [];
+      for (const entry of value) {
+        if (!entry || typeof entry !== 'object') continue;
+        const id = typeof entry.id === 'string' ? entry.id.trim().toLowerCase() : '';
+        if (!/^custom-[a-z0-9][a-z0-9-]{0,23}$/.test(id) || seen.has(id) || BUILTIN_KIND_IDS.includes(id)) continue;
+        const label = typeof entry.label === 'string' ? entry.label.trim().slice(0, 20) : '';
+        if (label === '') continue;
+        const icon = typeof entry.icon === 'string' && entry.icon !== '' ? entry.icon : 'document';
+        const tone = KIND_TONE_PALETTE.includes(entry.tone) ? entry.tone : KIND_TONE_PALETTE[result.length % KIND_TONE_PALETTE.length];
+        seen.add(id);
+        result.push({ id, label, icon, tone, custom: true });
+        if (result.length >= MAX_ARTIFACT_KINDS) break;
+      }
+      return result;
+    }
+
+    function normalizeKindIcons(value, validIds) {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+      const result = {};
+      for (const [id, icon] of Object.entries(value)) {
+        if (typeof id !== 'string' || typeof icon !== 'string' || icon === '') continue;
+        if (!validIds.has(id)) continue;
+        result[id] = icon;
+      }
+      return result;
+    }
+
+    function mergeKindDefinitions(builtin, custom) {
+      const seen = new Set(builtin.map((kind) => kind.id));
+      return [...builtin, ...custom.filter((kind) => !seen.has(kind.id))];
+    }
+
+    /** 稳定分组：按 order 排序，未在 order 中的 key 追加在末尾。 */
+    function bucketItems(items, keyOf, order) {
+      const buckets = new Map();
+      for (const item of items) {
+        const key = keyOf(item);
+        if (!buckets.has(key)) buckets.set(key, []);
+        buckets.get(key).push(item);
+      }
+      const ranked = [...buckets.keys()].sort((left, right) => {
+        const a = order.indexOf(left);
+        const b = order.indexOf(right);
+        if (a < 0 && b < 0) return String(left).localeCompare(String(right));
+        if (a < 0) return 1;
+        if (b < 0) return -1;
+        return a - b;
+      });
+      return ranked.map((key) => ({ key, items: buckets.get(key) }));
+    }
+    // #endregion kind-model
+
     // #region prefs
     // 统一偏好：单 key + 版本号；旧 key 在首次启动时迁移并备份。
     const PREF_KEY = 'dsh-agent-artifacts.prefs';
@@ -3046,6 +3350,9 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
         autoTags: {},
         autoTagsRev: 0,
         iconOverrides: [],
+        groupBy: 'purpose',
+        artifactKinds: [],
+        kindIcons: {},
         fileTypes: null,
         tableColumns: null,
         pathScope: 'workspace',
@@ -3060,7 +3367,9 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
 
     function normalizePrefs(raw) {
       const base = defaultPrefs();
-      const purposeIds = new Set(['plan', 'walkthrough', 'change', 'diagram', 'evidence', 'preview', 'document', 'code', 'other', 'untagged']);
+      const rawKinds = raw && typeof raw === 'object' ? normalizeArtifactKinds(raw.artifactKinds) : [];
+      base.artifactKinds = rawKinds;
+      const purposeIds = new Set([...BUILTIN_KIND_IDS, 'untagged', ...rawKinds.map((kind) => kind.id)]);
       const legacy = { design: 'document', task: 'document', diff: 'change', screenshot: 'evidence', recording: 'evidence', interactive: 'preview', prototype: 'preview' };
       const normalize = (id) => legacy[id] || id;
       if (!raw || typeof raw !== 'object') return base;
@@ -3125,6 +3434,8 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       }
       if (DENSITIES.includes(raw.density)) base.density = raw.density;
       if (SETTINGS_TABS.includes(raw.settingsTab)) base.settingsTab = raw.settingsTab;
+      if (GROUP_BYS.includes(raw.groupBy)) base.groupBy = raw.groupBy;
+      base.kindIcons = normalizeKindIcons(raw.kindIcons, purposeIds);
       return base;
     }
 
@@ -3228,6 +3539,9 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
             prefs.scan = next.scan;
             prefs.hideCodeDefault = next.hideCodeDefault;
             prefs.hiddenKinds = next.hiddenKinds;
+            prefs.groupBy = next.groupBy;
+            prefs.artifactKinds = next.artifactKinds;
+            prefs.kindIcons = next.kindIcons;
             prefs.view = next.view;
             prefs.font = next.font;
             prefs.showPath = next.showPath;
@@ -3260,6 +3574,9 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
         prefs.hideCodeDefault = base.hideCodeDefault;
       } else if (tab === 'types') {
         prefs.hiddenKinds = [];
+        prefs.artifactKinds = [];
+        prefs.kindIcons = {};
+        prefs.groupBy = base.groupBy;
       } else if (tab === 'icons') {
         prefs.iconOverrides = [];
       } else if (tab === 'filetypes') {
@@ -3281,6 +3598,9 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       prefs.hideCodeDefault = base.hideCodeDefault;
       prefs.hiddenKinds = [];
       prefs.iconOverrides = [];
+      prefs.groupBy = base.groupBy;
+      prefs.artifactKinds = [];
+      prefs.kindIcons = {};
       prefs.fileTypes = null;
       prefs.tableColumns = null;
       prefs.pathScope = 'workspace';
@@ -3314,6 +3634,19 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       ['page', 'kindGroupPage'],
       ['file', 'kindGroupFile'],
     ];
+    function kindDefinitions() {
+      const merged = mergeKindDefinitions(KINDS, prefs.artifactKinds || []);
+      const untagged = merged.find((kind) => kind.id === 'untagged');
+      return [...merged.filter((kind) => kind.id !== 'untagged'), untagged].filter(Boolean);
+    }
+    function kindDefinitionOf(id) {
+      return kindDefinitions().find((kind) => kind.id === id) || null;
+    }
+    function artifactKindLabel(id) {
+      const meta = kindDefinitionOf(id);
+      if (!meta) return id || 'untagged';
+      return meta.custom ? meta.label : (t()[meta.labelKey] || id);
+    }
     // 兼容层：面板与设置页通过具名函数读写统一偏好。
     const locationState = prefs.entries;
     function setLocation(key, value) {
@@ -3341,15 +3674,14 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
     const hiddenKinds = { get set() { return new Set(prefs.hiddenKinds); } };
     const subscribeKinds = subscribePrefs;
     function setKindVisible(id, visible) {
-      if (!KINDS.some((kind) => kind.id === id)) return;
+      if (!kindDefinitions().some((kind) => kind.id === id)) return;
       const next = new Set(prefs.hiddenKinds);
       if (visible === false) next.add(id);
       else next.delete(id);
       setPref('hiddenKinds', [...next]);
     }
     function kindLabelOf(id) {
-      const meta = KINDS.find((kind) => kind.id === id);
-      return meta ? t()[meta.labelKey] || id : id;
+      return artifactKindLabel(id);
     }
     const INFER_REV = 3;
     const VERSION_TONES = ['#9fc3ff', '#7fd6c2', '#ffc45e', '#c4a7ff', '#ff9bb0', '#a8d08d', '#f0a6dc'];

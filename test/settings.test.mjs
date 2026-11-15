@@ -3,10 +3,13 @@ import test from 'node:test';
 import fs from 'node:fs';
 
 const source = fs.readFileSync(new URL('../client.js', import.meta.url), 'utf8');
+const kindStart = source.indexOf('    // #region kind-model');
+const kindEnd = source.indexOf('    // #endregion kind-model');
+assert.ok(kindStart >= 0 && kindEnd > kindStart, 'kind model region is marked');
 const start = source.indexOf('    // #region prefs');
 const end = source.indexOf('    // #endregion prefs');
 assert.ok(start >= 0 && end > start, 'prefs region is marked');
-const region = source.slice(start, end);
+const region = source.slice(kindStart, kindEnd) + '\n' + source.slice(start, end);
 const { defaultPrefs, normalizePrefs, readLegacyPrefs } = new Function(`${region}\nreturn { defaultPrefs, normalizePrefs, readLegacyPrefs };`)();
 
 test('default prefs cover every field', () => {
@@ -24,6 +27,9 @@ test('default prefs cover every field', () => {
   assert.equal(value.density, 'comfortable');
   assert.equal(value.settingsTab, 'entry');
   assert.equal(value.pathScope, 'workspace');
+  assert.equal(value.groupBy, 'purpose');
+  assert.deepEqual(value.artifactKinds, []);
+  assert.deepEqual(value.kindIcons, {});
   assert.notEqual(defaultPrefs().entries, value.entries, 'defaults are fresh objects');
 });
 
@@ -34,6 +40,8 @@ test('normalize drops invalid values and keeps valid ones', () => {
     hiddenKinds: ['code', 'code', 7, '', 'other'],
     sort: { key: 'name', dir: 1 },
     density: 'compact', settingsTab: 'display', pathScope: 'all',
+    groupBy: 'bogus', artifactKinds: [{ id: 'custom-notes', label: '笔记', icon: 'markdown', tone: '#c06b8d' }],
+    kindIcons: { plan: 'readme', 'custom-notes': 'markdown', nope: 'code' },
   });
   assert.equal(value.entries.rail, true);
   assert.equal(value.entries.guide, true, 'invalid entry falls back to default');
@@ -46,6 +54,9 @@ test('normalize drops invalid values and keeps valid ones', () => {
   assert.equal(value.density, 'compact');
   assert.equal(value.settingsTab, 'display');
   assert.equal(value.pathScope, 'all');
+  assert.equal(value.groupBy, 'purpose', 'invalid grouping falls back to artifact type');
+  assert.equal(value.artifactKinds.length, 1);
+  assert.deepEqual(value.kindIcons, { plan: 'readme', 'custom-notes': 'markdown' });
 });
 
 test('icon overrides normalize, dedupe and cap at 200', () => {
