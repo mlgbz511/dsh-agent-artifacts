@@ -1020,6 +1020,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       '.dsa-tileDesc{font-size:var(--dsa-fs-sm);color:var(--dsw-alias-label-secondary);line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}',
       '.dsa-tileMeta{margin-top:auto;font-size:var(--dsa-fs-xs);color:var(--dsw-alias-label-tertiary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
       '.dsa-iconGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:4px;padding:6px 4px}',
+      '.dsa-list .dsa-iconGrid{max-height:none;overflow:visible;margin-top:0}',
       '.dsa-iconCell{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px 10px;border:1px solid transparent;border-radius:8px;background:transparent;color:inherit;font:inherit;cursor:pointer;text-align:center}',
       '.dsa-iconCell:hover{background:var(--dsw-alias-bg-layer-1);border-color:var(--dsw-alias-border-l1)}',
       '.dsa-iconCell:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}',
@@ -2676,7 +2677,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       });
     }
 
-    const PLUGIN_VERSION = '2.16.0';
+    const PLUGIN_VERSION = '2.16.1';
     const TAB_LABELS = { entry: 'tabEntry', content: 'tabContent', filetypes: 'tabFileTypes', display: 'tabDisplay', about: 'tabAbout' };
 
     function PrefSwitch({ label, hint, checked, onChange }) {

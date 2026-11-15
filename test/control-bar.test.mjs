@@ -23,6 +23,10 @@ test('the control bar is sticky and icon buttons expose labels', () => {
 });
 
 
+test('the main icon grid is not capped by the settings picker height', () => {
+  assert.ok(source.includes('.dsa-list .dsa-iconGrid{max-height:none;overflow:visible;margin-top:0}'));
+});
+
 test('sticky group headers stay opaque and clear of table column headers', () => {
   assert.ok(source.includes('.dsa-groupToggle{width:100%;border:0;background:var(--dsw-alias-bg-base);color:inherit;font:inherit;height:36px;'));
   assert.ok(source.includes('.dsa-dtable th{position:sticky;top:36px;'));
