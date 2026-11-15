@@ -1,0 +1,15 @@
+name: verify
+on:
+  push:
+  pull_request:
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/verify-package.mjs
+      - run: npm test
+      - run: node --input-type=module -e "import('./index.js').then((m) => { if (!m.apply || !m.ARTIFACT_TOOL) throw new Error('bad exports'); })"
