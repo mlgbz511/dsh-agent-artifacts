@@ -28,6 +28,7 @@ test('default prefs cover every field', () => {
   assert.equal(value.settingsTab, 'entry');
   assert.equal(value.pathScope, 'workspace');
   assert.equal(value.groupBy, 'purpose');
+  assert.deepEqual(value.collapsedGroups, []);
   assert.deepEqual(value.artifactKinds, []);
   assert.deepEqual(value.kindIcons, {});
   assert.notEqual(defaultPrefs().entries, value.entries, 'defaults are fresh objects');

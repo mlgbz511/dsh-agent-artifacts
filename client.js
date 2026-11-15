@@ -938,6 +938,9 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       '.dsa-groupByBtn{border:0;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:10.5px;padding:4px 9px;border-radius:5px;cursor:pointer}',
       '.dsa-groupByBtn[aria-pressed="true"]{background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-layer-1);font-weight:650}',
       '.dsa-groupIcon{display:inline-flex;align-items:center;justify-content:center;margin-right:2px}',
+      '.dsa-groupToggle{width:100%;border:0;background:transparent;color:inherit;font:inherit;padding:0 12px;cursor:pointer;text-align:left}',
+      '.dsa-groupToggle:hover{background:var(--dsw-alias-bg-layer-1)}',
+      '.dsa-groupChevron{font-size:11px;color:var(--dsw-alias-label-tertiary);width:10px;flex:none}',
       '.dsa-kiconMaterial svg{display:block;width:100%;height:100%}',
       '.dsa-toneDot{width:20px;height:20px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0}',
       '.dsa-toneDot.on{border-color:var(--dsw-alias-label-primary);box-shadow:0 0 0 2px var(--dsw-alias-bg-layer-1)}',
@@ -2059,6 +2062,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       const [sort, setSort] = useState(() => ({ ...prefs.sort }));
       const sortCycle = useRef({ key: '', step: 0 });
       const [selectedId, setSelectedId] = useState('');
+      const [collapsed, setCollapsed] = useState(() => new Set(prefs.collapsedGroups || []));
       const [menu, setMenu] = useState(null);
       const menuRef = useRef(null);
       const [columns, setColumns] = useState(() => normalizeTableColumns(prefs.tableColumns));
@@ -2169,6 +2173,15 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
         return t()[keys[provenanceOf(item, sessionId)]];
       };
 
+      const toggleGroup = (key) => {
+        setCollapsed((current) => {
+          const next = new Set(current);
+          if (next.has(key)) next.delete(key);
+          else next.add(key);
+          setPref('collapsedGroups', [...next]);
+          return next;
+        });
+      };
       const rowHandlers = (item) => ({
         onClick: () => setSelectedId(item.id),
         onDoubleClick: () => openItem(item),
@@ -2454,7 +2467,12 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
                 onClick: () => { setScopeOnly(false); setPref('pathScope', 'all'); },
               }, t().scopeShowAll)) : null,
           groups.map((group) => h('section', { key: group.key, className: 'dsa-groupBlock', role: 'group' },
-            h('div', { className: 'dsa-group' },
+            h('button', {
+              type: 'button', className: 'dsa-group dsa-groupToggle',
+              'aria-expanded': !collapsed.has(group.key),
+              onClick: () => toggleGroup(group.key),
+            },
+            h('span', { className: 'dsa-groupChevron', 'aria-hidden': 'true' }, collapsed.has(group.key) ? '▸' : '▾'),
               group.kind ? h('span', { className: 'dsa-groupIcon' }, h(KindIcon, { kind: group.kind, size: 18 })) : null,
               group.fileType ? h('span', {
                 className: 'dsa-ficon dsa-groupIcon', 'aria-hidden': 'true',
@@ -2464,7 +2482,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
               h('span', { className: 'dsa-groupTitle', title: group.title }, group.title),
               group.hint ? h('span', { className: 'dsa-groupHint', title: group.hint }, group.hint) : null,
               h('span', { className: 'dsa-groupCount' }, String(group.items.length))),
-            renderBody(group.items))),
+            collapsed.has(group.key) ? null : renderBody(group.items))),
           data.hasMore ? h('div', { className: 'dsa-more' },
             h('button', { className: 'dsa-button', onClick: data.loadMore, disabled: data.loading },
               data.loading ? t().loading : t().loadMore)) : null),
@@ -2511,7 +2529,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       });
     }
 
-    const PLUGIN_VERSION = '2.14.0';
+    const PLUGIN_VERSION = '2.14.1';
     const TAB_LABELS = { entry: 'tabEntry', content: 'tabContent', filetypes: 'tabFileTypes', display: 'tabDisplay', about: 'tabAbout' };
 
     function PrefSwitch({ label, hint, checked, onChange }) {
@@ -3351,6 +3369,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
         autoTagsRev: 0,
         iconOverrides: [],
         groupBy: 'purpose',
+        collapsedGroups: [],
         artifactKinds: [],
         kindIcons: {},
         fileTypes: null,
@@ -3435,6 +3454,9 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       if (DENSITIES.includes(raw.density)) base.density = raw.density;
       if (SETTINGS_TABS.includes(raw.settingsTab)) base.settingsTab = raw.settingsTab;
       if (GROUP_BYS.includes(raw.groupBy)) base.groupBy = raw.groupBy;
+      if (Array.isArray(raw.collapsedGroups)) {
+        base.collapsedGroups = [...new Set(raw.collapsedGroups.filter((key) => typeof key === 'string' && key !== ''))].slice(0, 200);
+      }
       base.kindIcons = normalizeKindIcons(raw.kindIcons, purposeIds);
       return base;
     }
@@ -3540,6 +3562,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
             prefs.hideCodeDefault = next.hideCodeDefault;
             prefs.hiddenKinds = next.hiddenKinds;
             prefs.groupBy = next.groupBy;
+            prefs.collapsedGroups = next.collapsedGroups;
             prefs.artifactKinds = next.artifactKinds;
             prefs.kindIcons = next.kindIcons;
             prefs.view = next.view;
@@ -3599,6 +3622,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       prefs.hiddenKinds = [];
       prefs.iconOverrides = [];
       prefs.groupBy = base.groupBy;
+      prefs.collapsedGroups = [];
       prefs.artifactKinds = [];
       prefs.kindIcons = {};
       prefs.fileTypes = null;
