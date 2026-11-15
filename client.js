@@ -898,6 +898,17 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       '.dsa-setRow:hover{background:var(--dsw-alias-bg-layer-2)}',
       '.dsa-setRow input{accent-color:var(--dsw-alias-brand-primary);margin:0}',
       '.dsa-setSummary{font-size:var(--dsa-fs-sm);color:var(--dsw-alias-label-secondary)}',
+      '.dsa-controls{position:sticky;top:0;z-index:4;background:var(--dsw-alias-bg-base);border-bottom:1px solid var(--dsw-alias-border-l1);padding-bottom:7px}',
+      '.dsa-controlBar{display:flex;align-items:center;gap:8px;padding:0 16px}',
+      '.dsa-seg{display:inline-flex;align-items:center;gap:2px;padding:2px;border:1px solid var(--dsw-alias-border-l2);border-radius:7px;background:var(--dsw-alias-bg-layer-1)}',
+      '.dsa-segLine{width:1px;height:18px;background:var(--dsw-alias-border-l2);flex:none}',
+      '.dsa-iconSegBtn{width:30px;height:26px;border:0;border-radius:5px;background:transparent;color:var(--dsw-alias-label-secondary);display:grid;place-items:center;cursor:pointer;transition:background 150ms,color 150ms}',
+      '.dsa-iconSegBtn:hover{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}',
+      '.dsa-iconSegBtn[aria-pressed="true"]{background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-base)}',
+      '.dsa-iconSegBtn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}',
+      '.dsa-colBtn{width:30px;height:30px;border:1px solid var(--dsw-alias-border-l2);border-radius:6px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary);display:grid;place-items:center;cursor:pointer}',
+      '.dsa-colBtn:hover{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}',
+      '.dsa-colBtn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}',
       '.dsa-viewBar{display:inline-flex;align-items:center;gap:2px;padding:2px;border-radius:7px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1)}',
       '.dsa-viewBtn{height:24px;padding:0 8px;border:0;border-radius:5px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:var(--dsa-fs-xs);cursor:pointer}',
       '.dsa-viewBtn:hover{color:var(--dsw-alias-label-primary)}',
@@ -1258,6 +1269,27 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       }, paths.map((d, index) => h('path', { key: index, d }))));
     }
 
+
+    function ControlIcon({ paths, size = 15 }) {
+      return h('svg', {
+        width: size, height: size, viewBox: '0 0 24 24', fill: 'none',
+        stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round',
+        'aria-hidden': 'true', focusable: 'false',
+      }, paths.map((d, index) => h('path', { key: index, d })));
+    }
+
+    const GROUP_ICONS = {
+      purpose: ['M4 4h7v7H4z', 'M13 4h7v7h-7z', 'M4 13h7v7H4z', 'M14 16.5h6', 'M17 13.5v6'],
+      file: ['M6 3h8l4 4v14H6z', 'M14 3v5h4'],
+      session: ['M4 5h16v11H9l-5 4z'],
+    };
+    const VIEW_ICONS = {
+      details: ['M4 6h7', 'M4 12h7', 'M4 18h7', 'M14 6h6', 'M14 12h6', 'M14 18h6'],
+      list: ['M8 6h12', 'M8 12h12', 'M8 18h12', 'M4.5 6h.01', 'M4.5 12h.01', 'M4.5 18h.01'],
+      tiles: ['M4 4h7v7H4z', 'M13 4h7v7h-7z', 'M4 13h7v7H4z', 'M13 13h7v7h-7z'],
+      icons: ['M5 5h5v5H5z', 'M14 5h5v5h-5z', 'M5 14h5v5H5z', 'M14 14h5v5h-5z', 'M6.5 7.5h2', 'M6.5 16.5h2', 'M15.5 7.5h2'],
+      content: ['M5 5h14v14H5z', 'M8 9h8', 'M8 12h8', 'M8 15h5'],
+    };
 
     // #region type-groups
     // 文件类型组：图标绑定的单位；一组包含一个或多个扩展名 + 可选特殊文件名。
@@ -2388,72 +2420,77 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
           h('button', {
             className: 'dsa-iconButton', onClick: data.refresh, title: t().refresh, 'aria-label': t().refresh,
           }, '⟳')),
-        h('div', { className: 'dsa-toolbar' },
-          h('input', {
-            className: 'dsa-input', type: 'search', value: query, placeholder: t().search,
-            'aria-label': t().search, onChange: (event) => setQuery(event.target.value),
-          }),
-          mode === 'workspace' ? h('select', {
-            className: 'dsa-select', value: workspace, 'aria-label': t().autoWorkspace,
-            onChange: (event) => setWorkspace(event.target.value),
-          },
-            h('option', { value: '' }, t().autoWorkspace),
-            (meta.workspaces || []).map((value) => h('option', { key: value, value }, value))) : null,
-          h('label', { className: 'dsa-check' },
+        h('div', { className: 'dsa-controls' },
+          h('div', { className: 'dsa-toolbar' },
             h('input', {
-              type: 'checkbox', checked: hideCode,
-              onChange: (event) => setHideCode(event.target.checked),
+              className: 'dsa-input', type: 'search', value: query, placeholder: t().search,
+              'aria-label': t().search, onChange: (event) => setQuery(event.target.value),
             }),
-            h('span', null, t().hideCode)),
-          h('label', { className: 'dsa-check' },
-            h('input', {
-              type: 'checkbox', checked: scopeOnly,
-              onChange: (event) => {
-                setScopeOnly(event.target.checked);
-                setPref('pathScope', event.target.checked ? 'workspace' : 'all');
-              },
-            }),
-            h('span', null, t().scopeOnly)),
-          h('div', { className: 'dsa-viewBar', role: 'group', 'aria-label': t().viewModeLabel },
-            viewOptions.map(([key, label]) => h('button', {
-              key, type: 'button', className: 'dsa-viewBtn', title: label,
-              'aria-pressed': viewMode === key,
-              onClick: () => setViewMode(key),
-            }, label))),
-          h('div', { className: 'dsa-colMenuWrap' },
-            h('button', {
-              className: 'dsa-button', type: 'button', 'aria-expanded': columnMenu,
-              onClick: () => setColumnMenu((value) => !value),
-            }, t().columns),
-            columnMenu ? h('div', { className: 'dsa-colMenu' },
-              h('div', { className: 'dsa-colMenuTitle' }, t().columnsHint),
-              columns.order.map((id, index) => {
-                const definition = TABLE_COLUMN_DEFS.find((column) => column.id === id);
-                return h('div', { key: id, className: 'dsa-colMenuRow' },
-                  h('label', null,
-                    h('input', {
-                      type: 'checkbox', checked: !columns.hidden.includes(id),
-                      onChange: (event) => toggleColumn(id, event.target.checked),
-                    }),
-                    t()[definition.label]),
-                  h('button', {
-                    className: 'dsa-colMove', type: 'button', disabled: index === 0,
-                    'aria-label': t().columnsHint, onClick: () => moveColumn(id, -1),
-                  }, '↑'),
-                  h('button', {
-                    className: 'dsa-colMove', type: 'button', disabled: index === columns.order.length - 1,
-                    'aria-label': t().columnsHint, onClick: () => moveColumn(id, 1),
-                  }, '↓'));
+            mode === 'workspace' ? h('select', {
+              className: 'dsa-select', value: workspace, 'aria-label': t().autoWorkspace,
+              onChange: (event) => setWorkspace(event.target.value),
+            },
+              h('option', { value: '' }, t().autoWorkspace),
+              (meta.workspaces || []).map((value) => h('option', { key: value, value }, value))) : null,
+            h('label', { className: 'dsa-check' },
+              h('input', {
+                type: 'checkbox', checked: hideCode,
+                onChange: (event) => setHideCode(event.target.checked),
               }),
+              h('span', null, t().hideCode)),
+            h('label', { className: 'dsa-check' },
+              h('input', {
+                type: 'checkbox', checked: scopeOnly,
+                onChange: (event) => {
+                  setScopeOnly(event.target.checked);
+                  setPref('pathScope', event.target.checked ? 'workspace' : 'all');
+                },
+              }),
+              h('span', null, t().scopeOnly))),
+          h('div', { className: 'dsa-controlBar' },
+            h('div', { className: 'dsa-seg', role: 'group', 'aria-label': t().groupByLabel },
+              [['purpose', t().groupByPurpose], ['file', t().groupByFile], ['session', t().groupBySession]].map(([id, label]) => h('button', {
+                key: id, type: 'button', className: 'dsa-iconSegBtn', title: label, 'aria-label': label,
+                'aria-pressed': prefs.groupBy === id,
+                onClick: () => setPref('groupBy', id),
+              }, h(ControlIcon, { paths: GROUP_ICONS[id] })))),
+            h('span', { className: 'dsa-segLine', 'aria-hidden': 'true' }),
+            h('div', { className: 'dsa-seg', role: 'group', 'aria-label': t().viewModeLabel },
+              viewOptions.map(([key, label]) => h('button', {
+                key, type: 'button', className: 'dsa-iconSegBtn', title: label, 'aria-label': label,
+                'aria-pressed': viewMode === key,
+                onClick: () => setViewMode(key),
+              }, h(ControlIcon, { paths: VIEW_ICONS[key] })))),
+            h('div', { className: 'dsa-colMenuWrap' },
               h('button', {
-                className: 'dsa-colReset', type: 'button',
-                onClick: () => { commitColumns(defaultTableColumns()); setColumnMenu(false); },
-              }, t().columnsReset)) : null)),
-        h('div', { className: 'dsa-groupBy', role: 'group', 'aria-label': t().groupByLabel },
-          [['purpose', t().groupByPurpose], ['file', t().groupByFile], ['session', t().groupBySession]].map(([id, label]) => h('button', {
-            key: id, type: 'button', className: 'dsa-groupByBtn', 'aria-pressed': prefs.groupBy === id,
-            onClick: () => setPref('groupBy', id),
-          }, label))),
+                className: 'dsa-colBtn', type: 'button', 'aria-expanded': columnMenu,
+                title: t().columns, 'aria-label': t().columns,
+                onClick: () => setColumnMenu((value) => !value),
+              }, h(ControlIcon, { paths: ['M4 4h16v16H4z', 'M10 4v16', 'M16 4v16'] })),
+              columnMenu ? h('div', { className: 'dsa-colMenu' },
+                h('div', { className: 'dsa-colMenuTitle' }, t().columnsHint),
+                columns.order.map((id, index) => {
+                  const definition = TABLE_COLUMN_DEFS.find((column) => column.id === id);
+                  return h('div', { key: id, className: 'dsa-colMenuRow' },
+                    h('label', null,
+                      h('input', {
+                        type: 'checkbox', checked: !columns.hidden.includes(id),
+                        onChange: (event) => toggleColumn(id, event.target.checked),
+                      }),
+                      t()[definition.label]),
+                    h('button', {
+                      className: 'dsa-colMove', type: 'button', disabled: index === 0,
+                      'aria-label': t().columnsHint, onClick: () => moveColumn(id, -1),
+                    }, '↑'),
+                    h('button', {
+                      className: 'dsa-colMove', type: 'button', disabled: index === columns.order.length - 1,
+                      'aria-label': t().columnsHint, onClick: () => moveColumn(id, 1),
+                    }, '↓'));
+                }),
+                h('button', {
+                  className: 'dsa-colReset', type: 'button',
+                  onClick: () => { commitColumns(defaultTableColumns()); setColumnMenu(false); },
+                }, t().columnsReset)) : null))),
         h('div', { className: 'dsa-list', role: 'list', 'data-compact': showPath ? 'false' : 'true', 'data-density': prefs.density === 'compact' ? 'compact' : 'comfortable' },
           data.error ? h('div', { className: 'dsa-error' },
             h('div', null, t().error + '：' + data.error),
@@ -2532,7 +2569,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       });
     }
 
-    const PLUGIN_VERSION = '2.14.5';
+    const PLUGIN_VERSION = '2.15.0';
     const TAB_LABELS = { entry: 'tabEntry', content: 'tabContent', filetypes: 'tabFileTypes', display: 'tabDisplay', about: 'tabAbout' };
 
     function PrefSwitch({ label, hint, checked, onChange }) {
