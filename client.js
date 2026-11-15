@@ -931,14 +931,17 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       '.dsa-dtable{width:100%;border-collapse:collapse;table-layout:fixed;font-size:var(--dsa-fs-sm)}',
       '.dsa-dtable th{position:sticky;top:34px;z-index:1;text-align:left;padding:6px 8px;border-bottom:1px solid var(--dsw-alias-border-l1);font-size:var(--dsa-fs-xs);font-weight:600;color:var(--dsw-alias-label-tertiary);background:var(--dsw-alias-bg-base);cursor:pointer;white-space:nowrap}',
       '.dsa-dtable th[aria-sort="ascending"],.dsa-dtable th[aria-sort="descending"]{color:var(--dsw-alias-label-secondary)}',
-      '.dsa-dtable td{padding:6px 8px;border-bottom:1px solid var(--dsw-alias-border-l1);vertical-align:middle;overflow:hidden}',
+      '.dsa-dtable td{padding:9px 8px;border-bottom:1px solid var(--dsw-alias-border-l1);vertical-align:middle;overflow:hidden}',
+      '.dsa-list[data-density="comfortable"] .dsa-listRow{min-height:36px;padding:7px 8px}',
+      '.dsa-list[data-density="comfortable"] .dsa-contentRow{padding:12px 8px}',
       '.dsa-dtable tbody tr{cursor:pointer}',
       '.dsa-dtable tbody tr:hover{background:var(--dsw-alias-bg-layer-1)}',
       '.dsa-groupBy{display:flex;gap:2px;margin:0 12px 8px;padding:2px;width:max-content;border:1px solid var(--dsw-alias-border-l2);border-radius:7px;background:var(--dsw-alias-bg-layer-1)}',
       '.dsa-groupByBtn{border:0;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:10.5px;padding:4px 9px;border-radius:5px;cursor:pointer}',
       '.dsa-groupByBtn[aria-pressed="true"]{background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-layer-1);font-weight:650}',
       '.dsa-groupIcon{display:inline-flex;align-items:center;justify-content:center;margin-right:2px}',
-      '.dsa-groupToggle{width:100%;border:0;background:transparent;color:inherit;font:inherit;padding:0 12px;cursor:pointer;text-align:left}',
+      '.dsa-groupToggle{width:100%;border:0;background:transparent;color:inherit;font:inherit;padding:7px 8px 6px;cursor:pointer;text-align:left;line-height:1.35}',
+      '.dsa-groupToggle[aria-expanded="false"]{padding:3px 8px;min-height:24px}',
       '.dsa-groupToggle:hover{background:var(--dsw-alias-bg-layer-1)}',
       '.dsa-groupChevron{font-size:11px;color:var(--dsw-alias-label-tertiary);width:10px;flex:none}',
       '.dsa-kiconMaterial svg{display:block;width:100%;height:100%}',
@@ -2529,7 +2532,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       });
     }
 
-    const PLUGIN_VERSION = '2.14.1';
+    const PLUGIN_VERSION = '2.14.2';
     const TAB_LABELS = { entry: 'tabEntry', content: 'tabContent', filetypes: 'tabFileTypes', display: 'tabDisplay', about: 'tabAbout' };
 
     function PrefSwitch({ label, hint, checked, onChange }) {
