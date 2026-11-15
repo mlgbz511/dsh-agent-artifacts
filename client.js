@@ -285,7 +285,9 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
         prefsScope: '偏好保存在本机浏览器（localStorage），不随会话同步。',
         scanLimit: '扫描上限：800 项 / 6 层；忽略 node_modules、.git、dist 等目录。',
         hideCodeDefault: '默认隐藏代码/配置',
-        hideCodeDefaultHint: '决定面板工具栏「隐藏代码/配置」的初始状态，仍可在工具栏临时切换。',
+        hideCodeDefaultHint: '只显示在设置页；关闭后显示代码与配置文件。',
+        scopeOnlyHint: '只显示当前工作区内的工件；关闭后显示其他目录与会话的文件。',
+        scopeInsideHint: '当前工作区内有 {n} 个工件，工作区外还有',
         noEntryWarning: '当前没有可见入口，可从本页重新打开。',
         defaultSort: '默认排序',
         sortTime: '时间（新→旧）',
@@ -592,7 +594,9 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
         prefsScope: 'Preferences live in this browser (localStorage); they do not follow sessions.',
         scanLimit: 'Scan limit: 800 items / 6 levels; node_modules, .git, dist and similar are skipped.',
         hideCodeDefault: 'Hide code/config by default',
-        hideCodeDefaultHint: 'Sets the toolbar toggle’s initial state; it can still be changed per session.',
+        hideCodeDefaultHint: 'Shown only in Settings; turn off to include code and config files.',
+        scopeOnlyHint: 'Show only artifacts inside the current workspace; turn off to include other folders and sessions.',
+        scopeInsideHint: 'Workspace contains {n} artifacts; outside the workspace:',
         noEntryWarning: 'No entry is visible right now; re-enable one on this tab.',
         defaultSort: 'Default sort',
         sortTime: 'Time (newest first)',
@@ -2079,7 +2083,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
         return () => clearTimeout(timer);
       }, [query]);
 
-      const [hideCode, setHideCode] = useState(() => prefs.hideCodeDefault !== false);
+      const hideCode = prefs.hideCodeDefault !== false;
       const [scan, setScanOn] = useState(scanState.on);
       useEffect(() => subscribeScan(() => setScanOn(scanState.on)), []);
       const [policy, setPolicyState] = useState(prefs.artifactPolicy === 'explicit' ? 'explicit' : 'writes');
@@ -2105,7 +2109,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       columnsRef.current = columns;
       useEffect(() => subscribePrefs(() => setColumns(normalizeTableColumns(prefs.tableColumns))), []);
       const [columnMenu, setColumnMenu] = useState(false);
-      const [scopeOnly, setScopeOnly] = useState(() => prefs.pathScope !== 'all');
+      const scopeOnly = prefs.pathScope !== 'all';
       const commitColumns = (next) => { setColumns(next); columnsRef.current = next; setPref('tableColumns', next); };
       const toggleColumn = (id, visible) => {
         let hidden = visible ? columns.hidden.filter((value) => value !== id) : [...columns.hidden, id];
@@ -2431,22 +2435,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
               onChange: (event) => setWorkspace(event.target.value),
             },
               h('option', { value: '' }, t().autoWorkspace),
-              (meta.workspaces || []).map((value) => h('option', { key: value, value }, value))) : null,
-            h('label', { className: 'dsa-check' },
-              h('input', {
-                type: 'checkbox', checked: hideCode,
-                onChange: (event) => setHideCode(event.target.checked),
-              }),
-              h('span', null, t().hideCode)),
-            h('label', { className: 'dsa-check' },
-              h('input', {
-                type: 'checkbox', checked: scopeOnly,
-                onChange: (event) => {
-                  setScopeOnly(event.target.checked);
-                  setPref('pathScope', event.target.checked ? 'workspace' : 'all');
-                },
-              }),
-              h('span', null, t().scopeOnly))),
+              (meta.workspaces || []).map((value) => h('option', { key: value, value }, value))) : null),
           h('div', { className: 'dsa-controlBar' },
             h('div', { className: 'dsa-seg', role: 'group', 'aria-label': t().groupByLabel },
               [['purpose', t().groupByPurpose], ['file', t().groupByFile], ['session', t().groupBySession]].map(([id, label]) => h('button', {
@@ -2501,10 +2490,11 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
             ? h('div', { className: 'dsa-empty' }, t().empty) : null,
           !data.loading && !data.error && outsideCount > 0 && scopeOnly
             ? h('div', { className: 'dsa-scopeHint' },
-              h('span', null, t().scopeEmptyHint + ' ' + outsideCount + ' ' + t().scopeOutside),
+              h('span', null, (scoped.length === 0 ? t().scopeEmptyHint : format(t().scopeInsideHint, { n: scoped.length }))
+                + ' ' + outsideCount + ' ' + t().scopeOutside),
               h('button', {
                 className: 'dsa-button', type: 'button',
-                onClick: () => { setScopeOnly(false); setPref('pathScope', 'all'); },
+                onClick: () => setPref('pathScope', 'all'),
               }, t().scopeShowAll)) : null,
           groups.map((group) => h('section', { key: group.key, className: 'dsa-groupBlock', role: 'group' },
             h('button', {
@@ -2569,7 +2559,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       });
     }
 
-    const PLUGIN_VERSION = '2.15.0';
+    const PLUGIN_VERSION = '2.15.1';
     const TAB_LABELS = { entry: 'tabEntry', content: 'tabContent', filetypes: 'tabFileTypes', display: 'tabDisplay', about: 'tabAbout' };
 
     function PrefSwitch({ label, hint, checked, onChange }) {
@@ -2622,6 +2612,11 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
         h(PrefSwitch, {
           label: t().hideCodeDefault, hint: t().hideCodeDefaultHint,
           checked: prefs.hideCodeDefault, onChange: (value) => setPref('hideCodeDefault', value),
+        }),
+        h(PrefSwitch, {
+          label: t().scopeOnly, hint: t().scopeOnlyHint,
+          checked: prefs.pathScope === 'workspace',
+          onChange: (value) => setPref('pathScope', value ? 'workspace' : 'all'),
         }),
         h('p', { className: 'dsa-setHint' }, t().scanLimit),
         h('div', { className: 'dsa-resetRow' },
