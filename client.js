@@ -117,7 +117,10 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
         typesLabel: '工件类型',
         displayLabel: '显示',
         showPath: '显示文件路径',
-        showPathHint: '默认精简：列表只显示文件名；打开后显示完整路径。',
+        showPathHint: '打开后列表与详情显示路径，可选相对或完整。',
+        pathDisplay: '路径格式',
+        pathRelative: '相对路径',
+        pathFull: '完整路径',
         stripDatePrefix: '隐藏文件名日期前缀',
         stripDatePrefixHint: '只改显示名，不改真实文件名、路径和搜索。',
         showSourceColumn: '显示「归属」列',
@@ -434,7 +437,10 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
         typesLabel: 'Artifact types',
         displayLabel: 'Display',
         showPath: 'Show file paths',
-        showPathHint: 'Compact by default: rows show the file name only. Turn on to show full paths.',
+        showPathHint: 'Show paths in lists and details; choose relative or full.',
+        pathDisplay: 'Path format',
+        pathRelative: 'Relative',
+        pathFull: 'Full',
         stripDatePrefix: 'Hide date prefixes in names',
         stripDatePrefixHint: 'Display only; real names, paths and search are unchanged.',
         showSourceColumn: 'Show the Origin column',
@@ -930,6 +936,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       '.dsa-set{display:flex;flex-direction:column;gap:8px;padding:4px 0 12px}',
       '.dsa-setTitle{margin:0;font-size:var(--dsa-fs);font-weight:600;color:var(--dsw-alias-label-primary)}',
       '.dsa-setHint{margin:0;font-size:var(--dsa-fs-sm);line-height:1.5;color:var(--dsw-alias-label-secondary)}',
+      '.dsa-subRow{padding-left:28px}',
       '.dsa-setRow{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);font-size:var(--dsa-fs);color:var(--dsw-alias-label-primary);cursor:pointer}',
       '.dsa-setRow:hover{background:var(--dsw-alias-bg-layer-2)}',
       '.dsa-setRow input{accent-color:var(--dsw-alias-brand-primary);margin:0}',
@@ -1593,6 +1600,19 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
     function displayArtifactName(item) {
       return prefs.stripDatePrefix !== false ? stripDatePrefix(item.name) : item.name;
     }
+    function relativeDisplayPath(filePath, root) {
+      const raw = String(filePath || '');
+      const base = String(root || '').replace(/[\\/]+$/, '');
+      if (base === '') return raw;
+      const normalized = raw.replace(/\\/g, '/');
+      const normalizedBase = base.replace(/\\/g, '/');
+      if (normalized.toLowerCase() === normalizedBase.toLowerCase()) return raw;
+      if (!normalized.toLowerCase().startsWith(normalizedBase.toLowerCase() + '/')) return raw;
+      return raw.slice(base.length + 1).replace(/\\/g, '/');
+    }
+    function displayPathOf(item, root) {
+      return prefs.pathDisplay === 'full' ? item.path : relativeDisplayPath(item.path, root);
+    }
     function typeTagOf(path, groups) {
       const resolved = resolveTypeGroup(path, groups);
       return resolved.group ? { group: resolved.group, tone: TABLE_TYPE_TONES[Math.abs(hashText(resolved.group.id)) % TABLE_TYPE_TONES.length] } : null;
@@ -1814,7 +1834,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       return h('div', { className: 'dsa-toast', role: 'status', 'aria-live': 'polite' }, message);
     }
 
-    function Detail({ id, workspace, sessionId, onClose, notify }) {
+    function Detail({ id, workspace, sessionId, root, onClose, notify }) {
       const [state, setState] = useState({ loading: true, item: null, preview: null, versions: null, oldPreview: null, error: null });
       useEffect(() => {
         const controller = new AbortController();
@@ -1857,7 +1877,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
         h('div', { className: 'dsa-modalHead' },
           h('div', { style: { flex: '1 1 auto', minWidth: 0 } },
             h('h2', { className: 'dsa-modalTitle' }, item ? item.name : t().detail),
-            h('div', { className: 'dsa-modalPath', title: item ? item.path : '' }, item ? item.path : '')),
+            h('div', { className: 'dsa-modalPath', title: item ? item.path : '' }, item ? displayPathOf(item, root) : '')),
           h('button', { className: 'dsa-iconButton', onClick: onClose, 'aria-label': t().close }, '×')),
         item ? h('div', { className: 'dsa-modalActions' },
           h('button', { className: 'dsa-button', onClick: () => copy(item.path, t().copied) }, t().copyPath),
@@ -2485,7 +2505,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
               h(FileIcon, { path: item.path, kind: item.category, size: 18 }),
               h('span', { className: 'dsa-cellText' },
                 h(MarqueeName, { className: 'dsa-name', text: displayArtifactName(item), title: item.name + ' · ' + item.path }),
-                showPath ? h('span', { className: 'dsa-path' }, item.path) : null)));
+                showPath ? h('span', { className: 'dsa-path' }, displayPathOf(item, workspaceRoot)) : null)));
           }
           if (id === 'kind') return h('td', { key: id }, typeTag(item));
           if (id === 'version') {
@@ -2538,7 +2558,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       },
         h(FileIcon, { path: item.path, kind: item.category, size: 18 }),
         h(MarqueeName, { className: 'dsa-name', text: displayArtifactName(item), title: item.name }),
-        showPath ? h('span', { className: 'dsa-listPath' }, item.path) : null)));
+        showPath ? h('span', { className: 'dsa-listPath' }, displayPathOf(item, workspaceRoot)) : null)));
 
       const renderTiles = (items) => h('div', { className: 'dsa-tileGrid' }, items.map((item) => h('button', {
         key: item.id, type: 'button', className: 'dsa-tile' + (selectedId === item.id ? ' dsa-selected' : ''), title: item.path,
@@ -2546,7 +2566,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       },
         h('span', { className: 'dsa-tileIcon' }, h(FileIcon, { path: item.path, kind: item.category, size: 28 })),
         h(MarqueeName, { className: 'dsa-tileName', text: displayArtifactName(item), title: item.name }),
-        h('span', { className: 'dsa-tileDesc' }, showPath ? item.path : (item.description || '') || '—'),
+        h('span', { className: 'dsa-tileDesc' }, showPath ? displayPathOf(item, workspaceRoot) : (item.description || '') || '—'),
         h('span', { className: 'dsa-tileMeta' }, categoryLabel(item.category), ' · ', formatTime(item.time)))));
 
       const renderIcons = (items) => h('div', { className: 'dsa-iconGrid' }, items.map((item) => h('button', {
@@ -2555,7 +2575,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       },
         h(FileIcon, { path: item.path, kind: item.category, size: 36 }),
         h(MarqueeName, { className: 'dsa-iconName', text: displayArtifactName(item), title: item.name }),
-        showPath ? h('span', { className: 'dsa-iconPath' }, item.path) : null)));
+        showPath ? h('span', { className: 'dsa-iconPath' }, displayPathOf(item, workspaceRoot)) : null)));
 
       const renderContent = (items) => h('div', { className: 'dsa-contentList' }, items.map((item) => h('button', {
         key: item.id, type: 'button', className: 'dsa-contentRow' + (selectedId === item.id ? ' dsa-selected' : ''), title: item.path,
@@ -2564,7 +2584,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
         h(FileIcon, { path: item.path, kind: item.category, size: 24 }),
         h('span', { className: 'dsa-contentBody' },
           h(MarqueeName, { className: 'dsa-contentName', text: displayArtifactName(item), title: item.name }),
-          h('span', { className: 'dsa-contentDesc' }, showPath ? item.path : (item.description || '') || '—')),
+          h('span', { className: 'dsa-contentDesc' }, showPath ? displayPathOf(item, workspaceRoot) : (item.description || '') || '—')),
         h('span', { className: 'dsa-contentMeta' }, categoryLabel(item.category), h('span', { className: 'dsa-muted' }, formatTime(item.time))))));
 
       const renderBody = (items) => {
@@ -2697,7 +2717,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
             h('button', { className: 'dsa-button', onClick: data.loadMore, disabled: data.loading },
               data.loading ? t().loading : t().loadMore)) : null),
         detail ? h(Detail, {
-          id: detail.id, workspace: mode === 'workspace' ? workspace : '', sessionId,
+          id: detail.id, workspace: mode === 'workspace' ? workspace : '', sessionId, root: workspaceRoot,
           onClose: () => setDetail(null), notify,
         }) : null,
         menu ? (() => {
@@ -2739,7 +2759,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       });
     }
 
-    const PLUGIN_VERSION = '2.19.0';
+    const PLUGIN_VERSION = '2.20.0';
     const TAB_LABELS = { entry: 'tabEntry', content: 'tabContent', filetypes: 'tabFileTypes', display: 'tabDisplay', about: 'tabAbout' };
 
     function PrefSwitch({ label, hint, checked, onChange }) {
@@ -3263,6 +3283,13 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
           label: t().showPath, hint: t().showPathHint,
           checked: prefs.showPath, onChange: setShowPath,
         }),
+        prefs.showPath ? h('div', { className: 'dsa-setRow dsa-prefRow dsa-subRow' },
+          h('div', { className: 'dsa-kindText' }, h('span', { className: 'dsa-kindName' }, t().pathDisplay)),
+          h('select', {
+            className: 'dsa-input dsa-viewSelect', value: prefs.pathDisplay, 'aria-label': t().pathDisplay,
+            onChange: (event) => setPref('pathDisplay', event.target.value),
+          }, [['relative', t().pathRelative], ['full', t().pathFull]]
+            .map(([id, label]) => h('option', { key: id, value: id }, label)))) : null,
         h(PrefSwitch, {
           label: t().stripDatePrefix, hint: t().stripDatePrefixHint,
           checked: prefs.stripDatePrefix !== false,
@@ -3623,6 +3650,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
         view: 'details',
         font: 'md',
         showPath: false,
+        pathDisplay: 'relative',
         stripDatePrefix: true,
         sort: { key: 'time', dir: -1 },
         density: 'comfortable',
@@ -3702,6 +3730,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       if (base.disabledViews.includes(base.view)) base.view = 'details';
       if (FONT_MODES.includes(raw.font)) base.font = raw.font;
       if (typeof raw.showPath === 'boolean') base.showPath = raw.showPath;
+      if (raw.pathDisplay === 'relative' || raw.pathDisplay === 'full') base.pathDisplay = raw.pathDisplay;
       if (typeof raw.stripDatePrefix === 'boolean') base.stripDatePrefix = raw.stripDatePrefix;
       if (raw.sort && typeof raw.sort === 'object') {
         if (SORT_KEYS.includes(raw.sort.key)) base.sort.key = raw.sort.key;
@@ -3866,6 +3895,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
         prefs.disabledViews = [...base.disabledViews];
         prefs.font = base.font;
         prefs.showPath = base.showPath;
+        prefs.pathDisplay = base.pathDisplay;
         prefs.stripDatePrefix = base.stripDatePrefix;
         prefs.sort = { ...base.sort };
         prefs.density = base.density;
