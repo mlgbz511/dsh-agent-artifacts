@@ -1022,6 +1022,14 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       '.dsa-tile:hover{background:var(--dsw-alias-bg-layer-2)}',
       '.dsa-tile:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}',
       '.dsa-tileIcon{display:inline-flex;color:var(--dsw-alias-label-secondary)}',
+      '.dsa-marqueeName{display:block;min-width:0;max-width:100%;overflow:hidden}',
+      '.dsa-marqueeInner{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+      '.dsa-marqueeName.dsa-iconName{display:flex;align-items:center;justify-content:center;height:2.8em;width:100%}',
+      '.dsa-marqueeName.dsa-iconName .dsa-marqueeInner{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;white-space:normal;text-overflow:clip;word-break:break-all;text-align:center;line-height:1.4}',
+      '.dsa-marqueeMeasure .dsa-marqueeInner,.dsa-marqueeOn .dsa-marqueeInner{display:inline-block;max-width:none;overflow:visible;white-space:nowrap;text-overflow:clip;-webkit-line-clamp:unset;word-break:normal}',
+      '.dsa-marqueeOn .dsa-marqueeInner{animation:dsa-name-marquee var(--dsa-dur,2s) ease-in-out infinite alternate}',
+      '@keyframes dsa-name-marquee{0%,12%{transform:translateX(0)}88%,100%{transform:translateX(var(--dsa-shift,-20px))}}',
+      '@media (prefers-reduced-motion: reduce){.dsa-marqueeOn .dsa-marqueeInner{animation:none;transform:none}}',
       '.dsa-tileName{font-size:var(--dsa-fs);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
       '.dsa-tileDesc{font-size:var(--dsa-fs-sm);color:var(--dsw-alias-label-secondary);line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}',
       '.dsa-tileMeta{margin-top:auto;font-size:var(--dsa-fs-xs);color:var(--dsw-alias-label-tertiary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
@@ -1647,6 +1655,39 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       INDEX_CACHE.delete(key);
       INDEX_CACHE.set(key, value);
       while (INDEX_CACHE.size > INDEX_CACHE_MAX) INDEX_CACHE.delete(INDEX_CACHE.keys().next().value);
+    }
+
+    function MarqueeName({ text, className, title }) {
+      const ref = useRef(null);
+      const timer = useRef(0);
+      const stop = () => {
+        clearTimeout(timer.current);
+        const box = ref.current;
+        if (box) {
+          box.classList.remove('dsa-marqueeOn', 'dsa-marqueeMeasure');
+          box.style.removeProperty('--dsa-shift');
+          box.style.removeProperty('--dsa-dur');
+        }
+      };
+      const start = () => {
+        const box = ref.current;
+        if (!box) return;
+        const inner = box.firstElementChild;
+        if (!inner) return;
+        box.classList.add('dsa-marqueeMeasure');
+        const overflow = inner.scrollWidth - box.clientWidth;
+        box.classList.remove('dsa-marqueeMeasure');
+        if (overflow <= 2) return;
+        timer.current = setTimeout(() => {
+          box.style.setProperty('--dsa-shift', '-' + overflow + 'px');
+          box.style.setProperty('--dsa-dur', Math.max(1.4, Math.min(5, overflow / 38)) + 's');
+          box.classList.add('dsa-marqueeOn');
+        }, 180);
+      };
+      return h('span', {
+        ref, className: 'dsa-marqueeName ' + (className || ''), title: title || text,
+        onMouseEnter: start, onMouseLeave: stop,
+      }, h('span', { className: 'dsa-marqueeInner' }, text));
     }
 
     function useArtifacts({ mode, sessionId, workspace, query, hideCode, scan, policy }) {
@@ -2431,7 +2472,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
             return h('td', { key: id }, h('span', { className: 'dsa-cellName' },
               h(FileIcon, { path: item.path, kind: item.category, size: 18 }),
               h('span', { className: 'dsa-cellText' },
-                h('span', { className: 'dsa-name', title: item.name + ' · ' + item.path }, displayFileName(item.name)),
+                h(MarqueeName, { className: 'dsa-name', text: displayFileName(item.name), title: item.name + ' · ' + item.path }),
                 showPath ? h('span', { className: 'dsa-path' }, item.path) : null)));
           }
           if (id === 'kind') return h('td', { key: id }, typeTag(item));
@@ -2484,7 +2525,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
         ...rowHandlers(item),
       },
         h(FileIcon, { path: item.path, kind: item.category, size: 18 }),
-        h('span', { className: 'dsa-name' }, item.name),
+        h(MarqueeName, { className: 'dsa-name', text: item.name }),
         showPath ? h('span', { className: 'dsa-listPath' }, item.path) : null)));
 
       const renderTiles = (items) => h('div', { className: 'dsa-tileGrid' }, items.map((item) => h('button', {
@@ -2492,7 +2533,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
         ...rowHandlers(item),
       },
         h('span', { className: 'dsa-tileIcon' }, h(FileIcon, { path: item.path, kind: item.category, size: 28 })),
-        h('span', { className: 'dsa-tileName' }, item.name),
+        h(MarqueeName, { className: 'dsa-tileName', text: item.name }),
         h('span', { className: 'dsa-tileDesc' }, showPath ? item.path : (item.description || '') || '—'),
         h('span', { className: 'dsa-tileMeta' }, categoryLabel(item.category), ' · ', formatTime(item.time)))));
 
@@ -2501,7 +2542,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
         ...rowHandlers(item),
       },
         h(FileIcon, { path: item.path, kind: item.category, size: 36 }),
-        h('span', { className: 'dsa-iconName' }, item.name),
+        h(MarqueeName, { className: 'dsa-iconName', text: item.name }),
         showPath ? h('span', { className: 'dsa-iconPath' }, item.path) : null)));
 
       const renderContent = (items) => h('div', { className: 'dsa-contentList' }, items.map((item) => h('button', {
@@ -2510,7 +2551,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       },
         h(FileIcon, { path: item.path, kind: item.category, size: 24 }),
         h('span', { className: 'dsa-contentBody' },
-          h('span', { className: 'dsa-contentName' }, item.name),
+          h(MarqueeName, { className: 'dsa-contentName', text: item.name }),
           h('span', { className: 'dsa-contentDesc' }, showPath ? item.path : (item.description || '') || '—')),
         h('span', { className: 'dsa-contentMeta' }, categoryLabel(item.category), h('span', { className: 'dsa-muted' }, formatTime(item.time))))));
 
@@ -2686,7 +2727,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       });
     }
 
-    const PLUGIN_VERSION = '2.17.0';
+    const PLUGIN_VERSION = '2.18.0';
     const TAB_LABELS = { entry: 'tabEntry', content: 'tabContent', filetypes: 'tabFileTypes', display: 'tabDisplay', about: 'tabAbout' };
 
     function PrefSwitch({ label, hint, checked, onChange }) {
