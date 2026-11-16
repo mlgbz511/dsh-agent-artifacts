@@ -23,3 +23,9 @@ test('marquee respects reduced motion and ping-pongs', () => {
   assert.ok(source.includes('@media (prefers-reduced-motion: reduce)'));
   assert.ok(source.includes('.dsa-marqueeOn .dsa-marqueeInner{animation:none;transform:none}'));
 });
+
+
+test('icon names are single-line ellipsis before hover', () => {
+  assert.ok(source.includes('.dsa-marqueeName.dsa-iconName{display:flex;align-items:center;justify-content:center;height:1.7em;width:100%}'));
+  assert.ok(source.includes('.dsa-marqueeName.dsa-iconName .dsa-marqueeInner{display:block;-webkit-line-clamp:unset;white-space:nowrap;'));
+});
