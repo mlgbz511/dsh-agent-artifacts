@@ -1,0 +1,52 @@
+{
+  "name": "dsh-agent-artifacts",
+  "version": "2.20.2",
+  "type": "module",
+  "description": "Agent artifact workspace for DeepSeek Harness: purpose tags, Git revisions, workspace scan, reader previews, and pointer/context-menu interactions.",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "lib",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "vendor/material-icons",
+    "THIRD-PARTY-NOTICES.md"
+  ],
+  "scripts": {
+    "public": "node scripts/public-surface.mjs",
+    "verify": "node scripts/verify-package.mjs",
+    "prepack": "npm run verify"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-slots"
+      ]
+    }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mlgbz511/dsh-agent-artifacts.git"
+  },
+  "homepage": "https://github.com/mlgbz511/dsh-agent-artifacts#readme",
+  "bugs": {
+    "url": "https://github.com/mlgbz511/dsh-agent-artifacts/issues"
+  },
+  "engines": {
+    "dsh": ">=0.2.0"
+  }
+}

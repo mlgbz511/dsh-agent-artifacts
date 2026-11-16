@@ -1,0 +1,5 @@
+# 工件 bundle patch：插入一条行，注册双面插件（host + client）。
+# 行 id 与第三方的 dsh-plugin-artifacts 区分，避免 slot id 冲突。
+- insert:
+    - id: agent-artifacts
+      name: dsh-agent-artifacts
