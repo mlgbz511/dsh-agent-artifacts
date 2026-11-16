@@ -127,6 +127,9 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
         viewTiles: '平铺',
         viewIcons: '图标',
         viewContent: '内容',
+        viewTilesEnable: '平铺视图',
+        viewContentEnable: '内容视图',
+        viewDisableHint: '关闭后从视图切换器移除；当前视图会切回详情。',
         fontSizeLabel: '字体大小',
         fontSmall: '紧凑',
         fontNormal: '标准',
@@ -439,6 +442,9 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
         viewTiles: 'Tiles',
         viewIcons: 'Icons',
         viewContent: 'Content',
+        viewTilesEnable: 'Tiles view',
+        viewContentEnable: 'Content view',
+        viewDisableHint: 'Hide this view from the switcher; an active view falls back to Details.',
         fontSizeLabel: 'Font size',
         fontSmall: 'Compact',
         fontNormal: 'Default',
@@ -2202,7 +2208,10 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       const [showPath, setShowPathOn] = useState(showPathState.on);
       useEffect(() => subscribeShowPath(() => setShowPathOn(showPathState.on)), []);
       const [viewMode, setViewModeState] = useState(viewModeState.value);
-      useEffect(() => subscribeViewMode(() => setViewModeState(viewModeState.value)), []);
+      useEffect(() => subscribeViewMode(() => {
+        const next = viewModeState.value;
+        setViewModeState(prefs.disabledViews.includes(next) ? 'details' : next);
+      }), []);
       const [fontSize, setFontSizeState] = useState(fontSizeState.value);
       useEffect(() => subscribeFontSize(() => setFontSizeState(fontSizeState.value)), []);
       const [sort, setSort] = useState(() => ({ ...prefs.sort }));
@@ -2517,7 +2526,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       const viewOptions = [
         ['details', t().viewDetails], ['list', t().viewList], ['tiles', t().viewTiles],
         ['icons', t().viewIcons], ['content', t().viewContent],
-      ];
+      ].filter(([key]) => !prefs.disabledViews.includes(key));
 
       return h('div', { className: 'dsa-page', 'data-font': fontSize },
         h(StyleSheet, null),
@@ -2677,7 +2686,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       });
     }
 
-    const PLUGIN_VERSION = '2.16.1';
+    const PLUGIN_VERSION = '2.17.0';
     const TAB_LABELS = { entry: 'tabEntry', content: 'tabContent', filetypes: 'tabFileTypes', display: 'tabDisplay', about: 'tabAbout' };
 
     function PrefSwitch({ label, hint, checked, onChange }) {
@@ -2735,6 +2744,28 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
           label: t().scopeOnly, hint: t().scopeOnlyHint,
           checked: prefs.pathScope === 'workspace',
           onChange: (value) => setPref('pathScope', value ? 'workspace' : 'all'),
+        }),
+        h(PrefSwitch, {
+          label: t().viewTilesEnable, hint: t().viewDisableHint,
+          checked: !prefs.disabledViews.includes('tiles'),
+          onChange: (value) => {
+            if (value) setPref('disabledViews', prefs.disabledViews.filter((id) => id !== 'tiles'));
+            else {
+              if (prefs.view === 'tiles') setPref('view', 'details');
+              setPref('disabledViews', [...new Set([...prefs.disabledViews, 'tiles'])]);
+            }
+          },
+        }),
+        h(PrefSwitch, {
+          label: t().viewContentEnable, hint: t().viewDisableHint,
+          checked: !prefs.disabledViews.includes('content'),
+          onChange: (value) => {
+            if (value) setPref('disabledViews', prefs.disabledViews.filter((id) => id !== 'content'));
+            else {
+              if (prefs.view === 'content') setPref('view', 'details');
+              setPref('disabledViews', [...new Set([...prefs.disabledViews, 'content'])]);
+            }
+          },
         }),
         h('p', { className: 'dsa-setHint' }, t().scanLimit),
         h('div', { className: 'dsa-resetRow' },
@@ -3166,6 +3197,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
             className: 'dsa-input dsa-viewSelect', value: prefs.view, 'aria-label': t().viewModeLabel,
             onChange: (event) => setViewMode(event.target.value),
           }, [['details', t().viewDetails], ['list', t().viewList], ['tiles', t().viewTiles], ['icons', t().viewIcons], ['content', t().viewContent]]
+            .filter(([id]) => !prefs.disabledViews.includes(id))
             .map(([id, label]) => h('option', { key: id, value: id }, label)))),
         h('div', { className: 'dsa-setRow dsa-prefRow' },
           h('div', { className: 'dsa-kindText' }, h('span', { className: 'dsa-kindName' }, t().fontSizeLabel)),
@@ -3493,6 +3525,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
     const PREF_KEY = 'dsh-agent-artifacts.prefs';
     const PREF_BACKUP_KEY = 'dsh-agent-artifacts.prefs.legacy-backup';
     const VIEW_MODES = ['details', 'list', 'tiles', 'icons', 'content'];
+    const DISABLEABLE_VIEWS = ['tiles', 'content'];
     const FONT_MODES = ['sm', 'md', 'lg', 'xl'];
     const DENSITIES = ['comfortable', 'compact'];
     const SORT_KEYS = ['time', 'name', 'kind'];
@@ -3528,6 +3561,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
         fileTypes: null,
         tableColumns: null,
         pathScope: 'workspace',
+        disabledViews: ['tiles', 'content'],
         view: 'details',
         font: 'md',
         showPath: false,
@@ -3535,6 +3569,11 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
         density: 'comfortable',
         settingsTab: 'entry',
       };
+    }
+
+    function normalizeDisabledViews(value) {
+      if (!Array.isArray(value)) return [...defaultPrefs().disabledViews];
+      return [...new Set(value.filter((id) => DISABLEABLE_VIEWS.includes(id)))];
     }
 
     function normalizePrefs(raw) {
@@ -3597,7 +3636,11 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       if (Array.isArray(raw.fileTypes)) base.fileTypes = normalizeTypeGroups(raw.fileTypes, language);
       if (raw.tableColumns && typeof raw.tableColumns === 'object') base.tableColumns = normalizeTableColumns(raw.tableColumns);
       if (raw.pathScope === 'all' || raw.pathScope === 'workspace') base.pathScope = raw.pathScope;
+      if (Array.isArray(raw.disabledViews)) {
+        base.disabledViews = [...new Set(raw.disabledViews.filter((id) => DISABLEABLE_VIEWS.includes(id)))];
+      }
       if (VIEW_MODES.includes(raw.view)) base.view = raw.view;
+      if (base.disabledViews.includes(base.view)) base.view = 'details';
       if (FONT_MODES.includes(raw.font)) base.font = raw.font;
       if (typeof raw.showPath === 'boolean') base.showPath = raw.showPath;
       if (raw.sort && typeof raw.sort === 'object') {
@@ -3748,6 +3791,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
       } else if (tab === 'content') {
         prefs.scan = base.scan;
         prefs.hideCodeDefault = base.hideCodeDefault;
+        prefs.disabledViews = [...base.disabledViews];
       } else if (tab === 'types') {
         prefs.hiddenKinds = [];
         prefs.artifactKinds = [];
@@ -3759,6 +3803,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
         prefs.fileTypes = null;
       } else if (tab === 'display') {
         prefs.view = base.view;
+        prefs.disabledViews = [...base.disabledViews];
         prefs.font = base.font;
         prefs.showPath = base.showPath;
         prefs.sort = { ...base.sort };
@@ -3841,7 +3886,7 @@ const PACKAGE_NAME = 'dsh-agent-artifacts';
     const subscribeShowPath = subscribePrefs;
 
     const viewModeState = { get value() { return prefs.view; } };
-    function setViewMode(value) { if (VIEW_MODES.includes(value)) setPref('view', value); }
+    function setViewMode(value) { if (VIEW_MODES.includes(value) && !prefs.disabledViews.includes(value)) setPref('view', value); }
     const subscribeViewMode = subscribePrefs;
 
     const fontSizeState = { get value() { return prefs.font; } };
